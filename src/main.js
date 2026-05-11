@@ -53,6 +53,42 @@ function createWindow() {
   });
 }
 
+// ─── PROXY ───
+let currentProxyConfig = null;
+
+ipcMain.handle('set-proxy', async (_event, config) => {
+  try {
+    const { type, host, port, username, password } = config;
+    let scheme = type;
+    if (type === 'socks4') scheme = 'socks4';
+    else if (type === 'socks5') scheme = 'socks5';
+    let auth = '';
+    if (username && password) {
+      auth = `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`;
+    }
+    const proxyRules = `${scheme}://${auth}${host}:${port}`;
+    await session.defaultSession.setProxy({ proxyRules });
+    currentProxyConfig = config;
+    console.log('[Proxy] Applied:', proxyRules);
+    return { success: true };
+  } catch (e) {
+    console.error('[Proxy] Error:', e);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('clear-proxy', async () => {
+  try {
+    await session.defaultSession.setProxy({ proxyRules: '' });
+    currentProxyConfig = null;
+    console.log('[Proxy] Cleared');
+    return { success: true };
+  } catch (e) {
+    console.error('[Proxy] Error:', e);
+    return { success: false, error: e.message };
+  }
+});
+
 app.whenReady().then(() => {
   // Set a realistic user agent
   const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
