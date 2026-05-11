@@ -1,13 +1,13 @@
 {
   "version": "2.2.0",
   "projectName": "ai-browser",
-  "initialisedAt": "2026-05-11T07:05:33.060Z",
-  "lastSaved": "2026-05-11T00:00:00.000Z",
+  "initialisedAt": "2026-05-11T15:05:33+08:00",
+  "lastSaved": "2026-05-11T17:10:00+08:00",
   "lastCommit": null,
   "lastCommitAt": null,
   "currentPhase": "build",
   "planningPhase": "retroactive",
-  "currentStep": "awaiting-verification",
+  "currentStep": "outcome-02-built-pending-verification",
   "personas": [
     {
       "id": "xiaohe",
@@ -27,7 +27,17 @@
       "doc": "docs/outcomes/outcome-01-zhipu-and-multi-account.md",
       "implementationFiles": ["src/index.html"],
       "registeredVia": "retroactive-plan-B",
-      "registeredAt": "2026-05-11T00:00:00.000Z"
+      "registeredAt": "2026-05-11T15:05:33+08:00"
+    },
+    {
+      "id": "outcome-02",
+      "name": "广播发送自动提交 + 代理配置 + 本地时间",
+      "phase": "B",
+      "status": "built-pending-verification",
+      "doc": "docs/outcomes/outcome-02-proxy-broadcast-fix.md",
+      "implementationFiles": ["src/index.html", "src/main.js"],
+      "registeredVia": "retroactive-plan-B",
+      "registeredAt": "2026-05-11T17:10:00+08:00"
     }
   ],
   "contractsMapped": false,

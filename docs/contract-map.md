@@ -7,7 +7,11 @@
 
 | Contract Name | Produced By | Consumed By | Key Attributes |
 |---------------|-------------|-------------|----------------|
-| _e.g. confirmed booking_ | _Outcome 1: Event Booking_ | _Outcome 3: Loyalty Points, Outcome 4: Dashboard_ | _customer, event, date, amount, attendee count_ |
+| Panel Identity | Outcome 1 | Broadcast, Layout, Clone | panelId, type, primary, partition |
+| AI_TYPES Registry | Outcome 1 | Broadcast, Clone, Add-Menu | name, icon, url, host, inject(q) |
+| ProxyConfig | Outcome 2 | Main Process (IPC) | enabled, type, host, port, username, password |
+| Inject v2 (Click) | Outcome 2 | Broadcast (sendQuery) | MouseEvent+PointerEvent dispatch, Enter fallback |
+| Local Clock | Outcome 2 | Status Bar | new Date() local time, 1s interval |
 
 ---
 
@@ -18,7 +22,11 @@ _Mark each as CONFIRMED (both sides explicit) or BROKEN (one side missing)_
 
 | Connection | Status |
 |-----------|--------|
-| Outcome 1 → [contract name] → Outcome 3 | ⬜ UNCONFIRMED |
+|| Outcome 1 → Panel Identity → Broadcast | CONFIRMED |
+|| Outcome 1 → AI_TYPES → Broadcast, Clone | CONFIRMED |
+|| Outcome 1 → AI_TYPES → Outcome 2 (inject) | CONFIRMED |
+|| Outcome 2 → ProxyConfig → Main Process (IPC) | CONFIRMED |
+|| Outcome 2 → Inject v2 → Broadcast | CONFIRMED |
 
 ---
 
@@ -27,18 +35,19 @@ _Contracts consumed by more than one outcome — must be pre-specified before co
 
 | Contract | Consumed By | Must Agree Before Building |
 |----------|-------------|---------------------------|
-| | | |
+| Panel Identity + AI_TYPES | Broadcast, Clone, Layout, Outcome 2 | Phase A complete |
 
 ---
 
 ## Dependency Graph (Build Order)
 
 **Phase A — Foundation (no dependencies):**
--
+- Electron shell + webview + persist session + CSP stripping
 
 **Phase B (depends only on Phase A):**
 - These outcomes are independent within Phase B and can be built in any order:
-  -
+  - Outcome 1: 智谱清言 + 多账号副本
+  - Outcome 2: 广播点击修复 + 代理配置 + 本地时钟
 
 **Phase C (depends on Phase B):**
 -
@@ -56,5 +65,7 @@ _Outcomes that consume contracts nobody has exposed yet_
 |---------|-------|-------------|
 | | | |
 
-> ✓ No orphaned dependencies — all contracts are accounted for.
-_(Delete the row above and add rows if orphans exist)_
+> ✓ All contracts mapped for Phase B outcomes.
+
+- Phase B → Phase A Foundation | ✅ Satisfied
+- Outcome 2 → Outcome 1 AI_TYPES | ✅ Satisfied (inject v2 reuses AI_TYPES registry)
