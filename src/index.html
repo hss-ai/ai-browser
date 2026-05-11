@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Browser — 多模型对比</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+    :root {
+      --bg: #080810;
+      --surface: #0e0e1a;
+      --surface2: #14141f;
+      --border: rgba(255,255,255,0.07);
+      --border-active: rgba(255,255,255,0.15);
+      --text: #e8e8f0;
+      --text-dim: #6b6b8a;
+      --accent: #7c6af7;
+      --accent2: #4de8c2;
+      --accent3: #f76a8a;
+      --glow: rgba(124, 106, 247, 0.15);
+      --titlebar-h: 52px;
+      --toolbar-h: 68px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ─── TITLEBAR ─── */
+    #titlebar {
+      height: var(--titlebar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px 0 80px; /* left space for macOS traffic lights */
+      gap: 16px;
+      -webkit-app-region: drag;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+    }
+
+    .logo span {
+      font-weight: 400;
+      opacity: 0.6;
+    }
+
+    .divider-v {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    /* Layout controls */
+    .layout-btns {
+      display: flex;
+      gap: 4px;
+      -webkit-app-region: no-drag;
+    }
+
+    .layout-btn {
+      width: 32px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      padding: 0;
+    }
+
+    .layout-btn:hover { border-color: var(--border-active); background: var(--surface2); }
+    .layout-btn.active { border-color: var(--accent); background: rgba(124,106,247,0.12); }
+
+    .layout-btn svg { width: 16px; height: 16px; stroke: var(--text-dim); fill: none; stroke-width: 1.5; }
+    .layout-btn.active svg { stroke: var(--accent); }
+
+    .spacer { flex: 1; }
+
+    /* Status pills */
+    .status-area {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .status-pill:hover { border-color: var(--border-active); color: var(--text); }
+    .status-pill.active { border-color: var(--accent); color: var(--accent); background: rgba(124,106,247,0.08); }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: background 0.15s;
+    }
+    .status-pill.active .dot { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+
+    /* ─── TOOLBAR ─── */
+    #toolbar {
+      height: var(--toolbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    /* Broadcast toggle */
+    #broadcast-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      font-size: 12px;
+      color: var(--text-dim);
+      -webkit-app-region: no-drag;
+    }
+
+    #broadcast-toggle:hover { border-color: var(--border-active); color: var(--text); }
+    #broadcast-toggle.on { border-color: var(--accent2); color: var(--accent2); background: rgba(77,232,194,0.06); }
+
+    #broadcast-toggle .icon {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      position: relative;
+      transition: all 0.2s;
+    }
+    #broadcast-toggle.on .icon::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 8px var(--accent2);
+    }
+
+    /* Main input */
+    #query-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 44px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0 4px 0 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-app-region: no-drag;
+    }
+
+    #query-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+
+    #query-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      caret-color: var(--accent2);
+    }
+
+    #query-input::placeholder { color: var(--text-dim); }
+
+    #send-btn {
+      height: 34px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #5a4fd4);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    #send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,106,247,0.4); }
+    #send-btn:active { transform: translateY(0); }
+
+    #send-btn svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2; }
+
+    /* ─── PANELS ─── */
+    #panels-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      min-width: 200px;
+      position: relative;
+      transition: flex 0.3s ease;
+    }
+
+    .panel:last-child { border-right: none; }
+    .panel.hidden { flex: 0; min-width: 0; overflow: hidden; }
+
+    /* Panel header */
+    .panel-header {
+      height: 44px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .ai-logo {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      flex: 1;
+    }
+
+    /* Panel URL bar */
+    .panel-url-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      height: 26px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0 8px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .panel-url-wrap:hover { border-color: var(--border-active); }
+
+    .panel-url {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Panel controls */
+    .panel-btn {
+      width: 26px; height: 26px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .panel-btn:hover { border-color: var(--border-active); background: var(--surface2); }
+    .panel-btn svg { width: 12px; height: 12px; stroke: var(--text-dim); fill: none; stroke-width: 1.8; }
+
+    /* Loading bar */
+    .panel-loading {
+      height: 2px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .panel-loading-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    .panel.loading .panel-loading-bar {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      animation: loadingAnim 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loadingAnim {
+      0% { width: 0%; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    /* Webview */
+    webview {
+      flex: 1;
+      width: 100%;
+      border: none;
+    }
+
+    /* Panel resize handle */
+    .resize-handle {
+      width: 4px;
+      background: transparent;
+      cursor: col-resize;
+      position: absolute;
+      right: -2px;
+      top: 0;
+      bottom: 0;
+      z-index: 10;
+      transition: background 0.15s;
+    }
+
+    .resize-handle:hover { background: var(--accent); }
+
+    /* ─── STATUS BAR ─── */
+    #statusbar {
+      height: 26px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .status-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* ─── PANEL THEMES ─── */
+    /* ChatGPT */
+    .panel[data-ai="chatgpt"] .ai-logo { background: #10a37f22; color: #10a37f; }
+    .panel[data-ai="chatgpt"] .panel-loading-bar { background: #10a37f; }
+
+    /* Claude */
+    .panel[data-ai="claude"] .ai-logo { background: #cc785122; color: #cc7851; }
+    .panel[data-ai="claude"] .panel-loading-bar { background: #cc7851; }
+
+    /* Gemini */
+    .panel[data-ai="gemini"] .ai-logo { background: #4285f422; color: #4285f4; }
+    .panel[data-ai="gemini"] .panel-loading-bar { background: #4285f4; }
+
+    /* DeepSeek */
+    .panel[data-ai="deepseek"] .ai-logo { background: #1a6fef22; color: #1a6fef; }
+    .panel[data-ai="deepseek"] .panel-loading-bar { background: #1a6fef; }
+
+    /* ─── HINT OVERLAY ─── */
+    .panel-overlay {
+      position: absolute;
+      inset: 44px 0 0 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 5;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .panel-overlay.hidden { opacity: 0; }
+
+    .overlay-icon {
+      font-size: 32px;
+      opacity: 0.2;
+    }
+
+    .overlay-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* Notification toast */
+    #toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border-active);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: var(--text);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 999;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<div id="titlebar">
+  <div class="logo">AI<span>Browser</span> <span style="font-size:10px;font-weight:300">多模型对比</span></div>
+  <div class="divider-v"></div>
+
+  <div class="layout-btns">
+    <!-- 2 panels -->
+    <button class="layout-btn" title="2栏" onclick="setLayout(2)">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="6" height="12" rx="1"/><rect x="9" y="2" width="6" height="12" rx="1"/></svg>
+    </button>
+    <!-- 3 panels -->
+    <button class="layout-btn" title="3栏" onclick="setLayout(3)">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="3.5" height="12" rx="1"/><rect x="6.25" y="2" width="3.5" height="12" rx="1"/><rect x="11.5" y="2" width="3.5" height="12" rx="1"/></svg>
+    </button>
+    <!-- 4 panels -->
+    <button class="layout-btn active" title="4栏" onclick="setLayout(4)">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2" width="2.5" height="12" rx="1"/><rect x="4.8" y="2" width="2.5" height="12" rx="1"/><rect x="8.7" y="2" width="2.5" height="12" rx="1"/><rect x="12.5" y="2" width="2.5" height="12" rx="1"/></svg>
+    </button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="status-area" id="status-pills">
+    <div class="status-pill active" data-ai="chatgpt" onclick="togglePanel('chatgpt')">
+      <div class="dot"></div> ChatGPT
+    </div>
+    <div class="status-pill active" data-ai="claude" onclick="togglePanel('claude')">
+      <div class="dot"></div> Claude
+    </div>
+    <div class="status-pill active" data-ai="gemini" onclick="togglePanel('gemini')">
+      <div class="dot"></div> Gemini
+    </div>
+    <div class="status-pill active" data-ai="deepseek" onclick="togglePanel('deepseek')">
+      <div class="dot"></div> DeepSeek
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div id="broadcast-toggle" onclick="toggleBroadcast()" title="统一广播模式">
+    <div class="icon"></div>
+    <span id="broadcast-label">广播关</span>
+  </div>
+
+  <div id="query-wrap">
+    <input
+      type="text"
+      id="query-input"
+      placeholder="输入问题，广播到所有 AI…"
+      onkeydown="handleKey(event)"
+    />
+    <button id="send-btn" onclick="sendQuery()">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      发送给全部
+    </button>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div id="panels-container">
+
+  <!-- ChatGPT -->
+  <div class="panel" data-ai="chatgpt" id="panel-chatgpt">
+    <div class="panel-header">
+      <div class="ai-logo">G</div>
+      <div class="panel-title">ChatGPT</div>
+      <div class="panel-url-wrap" onclick="focusPanel('chatgpt')">
+        <div class="panel-url">chatgpt.com</div>
+      </div>
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('chatgpt')">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+    <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-overlay" id="overlay-chatgpt">
+      <div class="overlay-icon">🤖</div>
+      <div class="overlay-text">ChatGPT<br><small>正在加载…</small></div>
+    </div>
+    <webview
+      id="wv-chatgpt"
+      src="https://chatgpt.com"
+      useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      allowpopups
+    ></webview>
+    <div class="resize-handle" onmousedown="startResize(event, 'chatgpt')"></div>
+  </div>
+
+  <!-- Claude -->
+  <div class="panel" data-ai="claude" id="panel-claude">
+    <div class="panel-header">
+      <div class="ai-logo">C</div>
+      <div class="panel-title">Claude</div>
+      <div class="panel-url-wrap" onclick="focusPanel('claude')">
+        <div class="panel-url">claude.ai</div>
+      </div>
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('claude')">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+    <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-overlay" id="overlay-claude">
+      <div class="overlay-icon">✦</div>
+      <div class="overlay-text">Claude<br><small>正在加载…</small></div>
+    </div>
+    <webview
+      id="wv-claude"
+      src="https://claude.ai"
+      useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      allowpopups
+    ></webview>
+    <div class="resize-handle" onmousedown="startResize(event, 'claude')"></div>
+  </div>
+
+  <!-- Gemini -->
+  <div class="panel" data-ai="gemini" id="panel-gemini">
+    <div class="panel-header">
+      <div class="ai-logo">✦</div>
+      <div class="panel-title">Gemini</div>
+      <div class="panel-url-wrap" onclick="focusPanel('gemini')">
+        <div class="panel-url">gemini.google.com</div>
+      </div>
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('gemini')">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+    <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-overlay" id="overlay-gemini">
+      <div class="overlay-icon">💫</div>
+      <div class="overlay-text">Gemini<br><small>正在加载…</small></div>
+    </div>
+    <webview
+      id="wv-gemini"
+      src="https://gemini.google.com"
+      useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      allowpopups
+    ></webview>
+    <div class="resize-handle" onmousedown="startResize(event, 'gemini')"></div>
+  </div>
+
+  <!-- DeepSeek -->
+  <div class="panel" data-ai="deepseek" id="panel-deepseek">
+    <div class="panel-header">
+      <div class="ai-logo">D</div>
+      <div class="panel-title">DeepSeek</div>
+      <div class="panel-url-wrap" onclick="focusPanel('deepseek')">
+        <div class="panel-url">chat.deepseek.com</div>
+      </div>
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('deepseek')">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+    <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-overlay" id="overlay-deepseek">
+      <div class="overlay-icon">🔍</div>
+      <div class="overlay-text">DeepSeek<br><small>正在加载…</small></div>
+    </div>
+    <webview
+      id="wv-deepseek"
+      src="https://chat.deepseek.com"
+      useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      allowpopups
+    ></webview>
+  </div>
+
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div class="status-text" id="status-msg">就绪 — 开启广播模式，一次提问同步到所有 AI</div>
+  <div style="flex:1"></div>
+  <div class="status-text">AI Browser v1.0</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ─── CONFIG ───
+  const AIs = {
+    chatgpt: {
+      url: 'https://chatgpt.com',
+      // JS to inject text into chatgpt's textarea and submit
+      inject: (q) => `
+        (async () => {
+          // Wait for textarea
+          let el = document.querySelector('#prompt-textarea');
+          if (!el) el = document.querySelector('textarea');
+          if (!el) return;
+          el.focus();
+          const nativeInput = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+          nativeInput.set.call(el, ${JSON.stringify(q)});
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 400));
+          const btn = document.querySelector('button[data-testid="send-button"]') ||
+                      document.querySelector('button[aria-label="Send message"]');
+          if (btn && !btn.disabled) btn.click();
+        })();
+      `
+    },
+    claude: {
+      url: 'https://claude.ai',
+      inject: (q) => `
+        (async () => {
+          let el = document.querySelector('[contenteditable="true"]');
+          if (!el) return;
+          el.focus();
+          document.execCommand('selectAll');
+          document.execCommand('insertText', false, ${JSON.stringify(q)});
+          await new Promise(r => setTimeout(r, 400));
+          const btn = document.querySelector('button[aria-label="Send Message"]') ||
+                      document.querySelector('button[type="submit"]');
+          if (btn) btn.click();
+        })();
+      `
+    },
+    gemini: {
+      url: 'https://gemini.google.com',
+      inject: (q) => `
+        (async () => {
+          let el = document.querySelector('.ql-editor') ||
+                   document.querySelector('[contenteditable="true"]') ||
+                   document.querySelector('rich-textarea');
+          if (!el) return;
+          el.focus();
+          document.execCommand('selectAll');
+          document.execCommand('insertText', false, ${JSON.stringify(q)});
+          await new Promise(r => setTimeout(r, 400));
+          const btn = document.querySelector('button.send-button') ||
+                      document.querySelector('[aria-label="Send message"]') ||
+                      document.querySelector('button[mattooltip="Send message"]');
+          if (btn) btn.click();
+        })();
+      `
+    },
+    deepseek: {
+      url: 'https://chat.deepseek.com',
+      inject: (q) => `
+        (async () => {
+          let el = document.querySelector('textarea');
+          if (!el) return;
+          el.focus();
+          const nativeInput = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+          nativeInput.set.call(el, ${JSON.stringify(q)});
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 400));
+          const btn = document.querySelector('[aria-label="send"]') ||
+                      document.querySelector('button[type="submit"]') ||
+                      document.querySelector('.send-button');
+          if (btn) btn.click();
+        })();
+      `
+    }
+  };
+
+  let broadcastOn = false;
+  let activePanels = new Set(['chatgpt', 'claude', 'gemini', 'deepseek']);
+  let currentLayout = 4;
+
+  // ─── WEBVIEW LOADING ───
+  Object.keys(AIs).forEach(ai => {
+    const wv = document.getElementById(`wv-${ai}`);
+    const panel = document.getElementById(`panel-${ai}`);
+    const overlay = document.getElementById(`overlay-${ai}`);
+
+    wv.addEventListener('did-start-loading', () => {
+      panel.classList.add('loading');
+    });
+
+    wv.addEventListener('did-stop-loading', () => {
+      panel.classList.remove('loading');
+      overlay.classList.add('hidden');
+    });
+
+    wv.addEventListener('did-fail-load', (e) => {
+      panel.classList.remove('loading');
+      if (e.errorCode !== -3) { // ignore aborted
+        overlay.querySelector('.overlay-text').innerHTML =
+          `加载失败<br><small>点击刷新重试</small>`;
+        overlay.style.pointerEvents = 'auto';
+      }
+    });
+  });
+
+  // ─── BROADCAST ───
+  function toggleBroadcast() {
+    broadcastOn = !broadcastOn;
+    const btn = document.getElementById('broadcast-toggle');
+    const label = document.getElementById('broadcast-label');
+    btn.classList.toggle('on', broadcastOn);
+    label.textContent = broadcastOn ? '广播开' : '广播关';
+    document.getElementById('query-input').placeholder = broadcastOn
+      ? '输入问题，广播到所有 AI…'
+      : '广播已关闭 — 请直接在各面板输入';
+    showToast(broadcastOn ? '📡 广播模式开启' : '广播模式已关闭');
+  }
+
+  // ─── SEND QUERY ───
+  function sendQuery() {
+    const q = document.getElementById('query-input').value.trim();
+    if (!q) {
+      showToast('请先输入问题');
+      return;
+    }
+
+    if (!broadcastOn) {
+      showToast('请先开启广播模式');
+      return;
+    }
+
+    const count = activePanels.size;
+    let sent = 0;
+
+    activePanels.forEach(ai => {
+      const wv = document.getElementById(`wv-${ai}`);
+      if (!wv) return;
+      try {
+        wv.executeJavaScript(AIs[ai].inject(q))
+          .then(() => {
+            sent++;
+            if (sent === count) {
+              showToast(`✓ 已发送到 ${sent} 个 AI`);
+              setStatus(`已广播「${q.slice(0,30)}${q.length>30?'…':''}」到 ${sent} 个 AI`);
+            }
+          })
+          .catch(err => {
+            console.error(ai, err);
+            showToast(`⚠ ${ai} 注入失败，请手动粘贴`);
+          });
+      } catch(e) {
+        // Copy to clipboard as fallback
+        navigator.clipboard.writeText(q);
+        showToast('已复制到剪贴板，请手动粘贴');
+      }
+    });
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      sendQuery();
+    }
+  }
+
+  // ─── PANEL CONTROLS ───
+  function reloadPanel(ai) {
+    const wv = document.getElementById(`wv-${ai}`);
+    const overlay = document.getElementById(`overlay-${ai}`);
+    overlay.classList.remove('hidden');
+    overlay.style.pointerEvents = 'none';
+    overlay.querySelector('.overlay-text').innerHTML = `${ai}<br><small>正在加载…</small>`;
+    wv.reload();
+  }
+
+  function focusPanel(ai) {
+    const wv = document.getElementById(`wv-${ai}`);
+    wv.focus();
+  }
+
+  function togglePanel(ai) {
+    const pill = document.querySelector(`.status-pill[data-ai="${ai}"]`);
+    const panel = document.getElementById(`panel-${ai}`);
+
+    if (activePanels.has(ai) && activePanels.size > 1) {
+      activePanels.delete(ai);
+      pill.classList.remove('active');
+      panel.classList.add('hidden');
+    } else if (!activePanels.has(ai)) {
+      activePanels.add(ai);
+      pill.classList.add('active');
+      panel.classList.remove('hidden');
+    }
+  }
+
+  // ─── LAYOUT ───
+  function setLayout(n) {
+    currentLayout = n;
+    document.querySelectorAll('.layout-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i === n - 2);
+    });
+
+    const allAIs = ['chatgpt', 'claude', 'gemini', 'deepseek'];
+    const show = allAIs.slice(0, n);
+    const hide = allAIs.slice(n);
+
+    show.forEach(ai => {
+      activePanels.add(ai);
+      document.getElementById(`panel-${ai}`).classList.remove('hidden');
+      document.querySelector(`.status-pill[data-ai="${ai}"]`).classList.add('active');
+    });
+
+    hide.forEach(ai => {
+      activePanels.delete(ai);
+      document.getElementById(`panel-${ai}`).classList.add('hidden');
+      document.querySelector(`.status-pill[data-ai="${ai}"]`).classList.remove('active');
+    });
+  }
+
+  // ─── RESIZE ───
+  let resizing = null;
+  let resizeStartX = 0;
+  let resizeStartFlex = 0;
+
+  function startResize(e, ai) {
+    resizing = ai;
+    resizeStartX = e.clientX;
+    const panel = document.getElementById(`panel-${ai}`);
+    resizeStartFlex = parseFloat(getComputedStyle(panel).flexGrow) || 1;
+    document.addEventListener('mousemove', onResize);
+    document.addEventListener('mouseup', stopResize);
+  }
+
+  function onResize(e) {
+    if (!resizing) return;
+    const container = document.getElementById('panels-container');
+    const dx = e.clientX - resizeStartX;
+    const ratio = dx / container.offsetWidth;
+    const panel = document.getElementById(`panel-${resizing}`);
+    const newFlex = Math.max(0.3, resizeStartFlex + ratio * activePanels.size);
+    panel.style.flex = newFlex;
+  }
+
+  function stopResize() {
+    resizing = null;
+    document.removeEventListener('mousemove', onResize);
+    document.removeEventListener('mouseup', stopResize);
+  }
+
+  // ─── TOAST ───
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status-msg').textContent = msg;
+  }
+
+  // Init status
+  setStatus('就绪 — 开启广播模式，一次提问同步到所有 AI（Cmd+Enter 发送）');
+</script>
+
+</body>
+</html>

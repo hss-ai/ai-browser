@@ -1,0 +1,70 @@
+const { app, BrowserWindow, ipcMain, session } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+let mainWindow;
+
+// 持久化缓存目录 - 保存在用户文档目录
+const userDataPath = path.join(app.getPath('documents'), 'AI-Browser-Cache');
+if (!fs.existsSync(userDataPath)) {
+  fs.mkdirSync(userDataPath, { recursive: true });
+}
+
+// 设置持久化的 userData 存储路径（包含 cookies、session 等）
+app.setPath('userData', userDataPath);
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1600,
+    height: 1000,
+    minWidth: 900,
+    minHeight: 600,
+    titleBarStyle: 'hiddenInset',
+    backgroundColor: '#0a0a0f',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      webviewTag: true,
+      allowRunningInsecureContent: false,
+      // 使用持久化 partition，cookies 和 session 会自动保存
+      partition: 'persist:aisession',
+    },
+  });
+
+  // Allow all webview content to load
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    const headers = { ...details.responseHeaders };
+    // Remove frame-blocking headers so webviews can load AI sites
+    delete headers['x-frame-options'];
+    delete headers['X-Frame-Options'];
+    if (headers['content-security-policy']) {
+      delete headers['content-security-policy'];
+    }
+    if (headers['Content-Security-Policy']) {
+      delete headers['Content-Security-Policy'];
+    }
+    callback({ responseHeaders: headers });
+  });
+
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+app.whenReady().then(() => {
+  // Set a realistic user agent
+  const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  session.defaultSession.setUserAgent(userAgent);
+
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
