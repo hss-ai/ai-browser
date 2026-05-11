@@ -36,38 +36,32 @@ jobs:
       - name: Build
         run: npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
 
-      - name: Package (Windows)
-        if: matrix.platform == 'win32'
+      - name: Package Windows
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $src = "release/AI-Browser-win32-x64"
-          $dst = "release/AI-Browser-win32-x64.zip"
-          Compress-Archive -Path "$src/*" -DestinationPath $dst -Force
-          Get-Item $dst
+          Compress-Archive -Path "release/AI-Browser-win32-x64/*" -DestinationPath "AI-Browser-win32-x64.zip" -Force
+          ls -la AI-Browser-win32-x64.zip
 
-      - name: Package (Linux)
-        if: matrix.platform == 'linux'
+      - name: Package Linux
+        if: runner.os == 'Linux'
         run: |
-          cd release
-          tar -czvf AI-Browser-linux-x64.tar.gz AI-Browser-linux-x64
+          tar -czvf AI-Browser-linux-x64.tar.gz -C release AI-Browser-linux-x64
           ls -lh AI-Browser-linux-x64.tar.gz
 
-      - name: Upload artifact
+      - name: Upload Windows
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}*.zip
-          retention-days: 1
-        continue-on-error: true
+          name: win
+          path: AI-Browser-win32-x64.zip
 
-      - name: Upload artifact (Linux)
-        if: matrix.platform == 'linux'
+      - name: Upload Linux
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
-          retention-days: 1
-        continue-on-error: true
+          name: linux
+          path: AI-Browser-linux-x64.tar.gz
 
   release:
     needs: build
@@ -80,19 +74,16 @@ jobs:
         with:
           path: artifacts
 
-      - name: List files
+      - name: Rename and list
         run: |
-          echo "=== All files ==="
-          find artifacts -type f
-          echo "=== Directories ==="
-          ls -laR artifacts/
+          mv artifacts/win/AI-Browser-win32-x64.zip ./AI-Browser-win32-x64.zip
+          mv artifacts/linux/AI-Browser-linux-x64.tar.gz ./AI-Browser-linux-x64.tar.gz
+          ls -lh *.zip *.tar.gz
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/**/AI-Browser-win32-x64.zip
-            artifacts/**/AI-Browser-linux-x64.tar.gz
+            AI-Browser-win32-x64.zip
+            AI-Browser-linux-x64.tar.gz
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
