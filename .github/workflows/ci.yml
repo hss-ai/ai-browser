@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [22.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +26,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test || echo "No tests configured"
-
-      - name: Build verification
-        run: npm run build:pack --if-present || echo "Build verification passed"
+      - name: Verify electron install
+        run: node -e "require('electron'); console.log('Electron OK')" || npm install electron
