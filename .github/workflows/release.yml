@@ -34,21 +34,13 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: |
-          echo "Building for ${{ matrix.platform }} ${{ matrix.arch }}"
-          npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
-
-      - name: Show output
-        run: |
-          echo "=== Release directory ==="
-          ls -la release/ 2>/dev/null || echo "No release dir"
-          find release -name "*.exe" -o -name "AI-Browser*" 2>/dev/null | head -20
+        run: npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/
+          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
 
   release:
     needs: build
@@ -62,9 +54,6 @@ jobs:
           path: artifacts
           pattern: AI-Browser-*
           merge-multiple: true
-
-      - name: List files
-        run: find artifacts -type f | head -30
 
       - name: Create
         uses: softprops/action-gh-release@v1
