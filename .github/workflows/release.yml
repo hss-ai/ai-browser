@@ -44,8 +44,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Write-Host "=== Checking release folder ==="
+          Get-ChildItem -Path "release" -Recurse | Select-Object Name, Length | Format-Table
+          Write-Host "=== Creating zip ==="
           Compress-Archive -Path "release/AI-Browser-win32-x64/*" -DestinationPath "AI-Browser-win32-x64.zip" -Force
-          ls -la AI-Browser-win32-x64.zip
+          Write-Host "=== Result ==="
+          Get-Item AI-Browser-win32-x64.zip | Select-Object Name, Length
 
       - name: Package Linux
         if: runner.os == 'Linux'
