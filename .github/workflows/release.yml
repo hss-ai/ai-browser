@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -18,12 +18,6 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: arm64
           - os: windows-latest
             platform: win32
             arch: x64
@@ -31,43 +25,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install
+        run: npm ci
 
-      - name: Build ${{ matrix.platform }} ${{ matrix.arch }}
-        run: node node_modules/@electron/packager/cli.js . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite --asar
+      - name: Build
+        run: |
+          echo "Building for ${{ matrix.platform }} ${{ matrix.arch }}"
+          npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
         env:
           ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
-          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
 
-      - name: Upload artifacts
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/
+          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}-*/
 
-  create-release:
-    needs: release
+  release:
+    needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: AI-Browser-*
+          merge-multiple: true
 
-      - name: Create Release
+      - name: Create
         uses: softprops/action-gh-release@v1
         with:
           files: artifacts/**
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
