@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  attestations: write
 
 jobs:
   release:
@@ -15,13 +14,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04
+          - os: ubuntu-latest
             platform: linux
             arch: x64
-          - os: macos-14
+          - os: macos-latest
             platform: darwin
             arch: x64
-          - os: macos-14
+          - os: macos-latest
             platform: darwin
             arch: arm64
           - os: windows-latest
@@ -40,40 +39,20 @@ jobs:
         run: npm install
 
       - name: Build ${{ matrix.platform }} ${{ matrix.arch }}
-        run: |
-          npx @electron/packager . AI-Browser \
-            --platform=${{ matrix.platform }} \
-            --arch=${{ matrix.arch }} \
-            --out=release \
-            --overwrite \
-            --asar \
-            --ignore="^/\.git$" \
-            --ignore="^/\.github$" \
-            --ignore="^/docs$" \
-            --ignore="^/\.claude$" \
-            --ignore="^/\.opencode$" \
-            --ignore="^/\.vscode$" \
-            --ignore="^/\.odd$" \
-            --ignore="^/\.agents$" \
-            --ignore="^/\.mcp\.json$" \
-            --ignore="^/opencode\.json$" \
-            --ignore="^/AGENTS\.md$" \
-            --ignore="^/\.gitignore$"
+        run: node node_modules/@electron/packager/cli.js . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite --asar
         env:
           ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
-          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}*/
-          if-no-files-found: error
+          path: release/
 
   create-release:
     needs: release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -83,19 +62,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          pattern: AI-Browser-*
-          merge-multiple: false
-
-      - name: List artifacts
-        run: ls -la artifacts/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/**/*.exe
-            artifacts/**/AI-Browser-linux-*/
-            artifacts/**/AI-Browser-darwin-*/
+          files: artifacts/**
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
