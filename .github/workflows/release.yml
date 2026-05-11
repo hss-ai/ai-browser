@@ -36,11 +36,31 @@ jobs:
       - name: Build
         run: npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
 
-      - name: Upload
+      - name: Create package
+        if: matrix.platform == 'win32'
+        run: |
+          cd release/AI-Browser-win32-x64
+          powershell -Command "Compress-Archive -Path * -DestinationPath ../AI-Browser-win32-x64.zip -Force"
+
+      - name: Create package
+        if: matrix.platform == 'linux'
+        run: |
+          cd release/AI-Browser-linux-x64
+          tar -czf ../AI-Browser-linux-x64.tar.gz .
+
+      - name: Upload Windows
+        if: matrix.platform == 'win32'
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
+          name: AI-Browser-win32-x64
+          path: release/AI-Browser-win32-x64.zip
+
+      - name: Upload Linux
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Browser-linux-x64
+          path: release/AI-Browser-linux-x64.tar.gz
 
   release:
     needs: build
@@ -52,10 +72,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          pattern: AI-Browser-*
-          merge-multiple: true
 
-      - name: Create
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: artifacts/**
