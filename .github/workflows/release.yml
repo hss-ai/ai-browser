@@ -21,6 +21,9 @@ jobs:
           - os: windows-latest
             platform: win32
             arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: x64
 
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +66,21 @@ jobs:
           name: linux
           path: AI-Browser-linux-x64.tar.gz
 
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd release
+          zip -r ../AI-Browser-darwin-x64.zip AI-Browser-darwin-x64
+          ls -lh ../AI-Browser-darwin-x64.zip
+
+      - name: Upload macOS
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin
+          path: AI-Browser-darwin-x64.zip
+
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -78,6 +96,7 @@ jobs:
         run: |
           mv artifacts/win/AI-Browser-win32-x64.zip ./AI-Browser-win32-x64.zip
           mv artifacts/linux/AI-Browser-linux-x64.tar.gz ./AI-Browser-linux-x64.tar.gz
+          mv artifacts/darwin/AI-Browser-darwin-x64.zip ./AI-Browser-darwin-x64.zip
           ls -lh *.zip *.tar.gz
 
       - name: Create Release
@@ -86,4 +105,5 @@ jobs:
           files: |
             AI-Browser-win32-x64.zip
             AI-Browser-linux-x64.tar.gz
+            AI-Browser-darwin-x64.zip
           generate_release_notes: true
