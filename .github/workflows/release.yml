@@ -36,39 +36,38 @@ jobs:
       - name: Build
         run: npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
 
-      - name: Show output
-        run: ls -la release/
-
-      - name: Create zip (Windows)
+      - name: Package (Windows)
         if: matrix.platform == 'win32'
-        shell: bash
+        shell: pwsh
         run: |
-          cd release
-          dir AI-Browser-win32-x64/ 2>/dev/null || ls AI-Browser-win32-x64/
-          powershell -Command "Compress-Archive -Path 'AI-Browser-win32-x64/*' -DestinationPath 'AI-Browser-win32-x64.zip' -Force"
-          ls -la AI-Browser-win32-x64.zip
+          $src = "release/AI-Browser-win32-x64"
+          $dst = "release/AI-Browser-win32-x64.zip"
+          Compress-Archive -Path "$src/*" -DestinationPath $dst -Force
+          Get-Item $dst
 
-      - name: Create tar.gz (Linux)
+      - name: Package (Linux)
         if: matrix.platform == 'linux'
         run: |
           cd release
-          ls -la AI-Browser-linux-x64/
-          tar -czvf AI-Browser-linux-x64.tar.gz AI-Browser-linux-x64/*
-          ls -la AI-Browser-linux-x64.tar.gz
+          tar -czvf AI-Browser-linux-x64.tar.gz AI-Browser-linux-x64
+          ls -lh AI-Browser-linux-x64.tar.gz
 
-      - name: Upload Windows
-        if: matrix.platform == 'win32'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Browser-win32-x64
-          path: release/AI-Browser-win32-x64.zip
+          name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}*.zip
+          retention-days: 1
+        continue-on-error: true
 
-      - name: Upload Linux
+      - name: Upload artifact (Linux)
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: AI-Browser-linux-x64
-          path: release/AI-Browser-linux-x64.tar.gz
+          name: AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release/AI-Browser-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+          retention-days: 1
+        continue-on-error: true
 
   release:
     needs: build
@@ -76,16 +75,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Show artifacts
-        run: ls -la artifacts/
+      - name: List files
+        run: |
+          echo "=== All files ==="
+          find artifacts -type f
+          echo "=== Directories ==="
+          ls -laR artifacts/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**
+          files: |
+            artifacts/**/AI-Browser-win32-x64.zip
+            artifacts/**/AI-Browser-linux-x64.tar.gz
           generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
