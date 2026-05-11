@@ -6,12 +6,15 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder --win --x64",
-    "pack": "electron-builder --dir"
+    "build:pack": "npx @electron/packager . AI-Browser --platform=win32 --arch=x64 --out=release --overwrite",
+    "build:win": "npx @electron/packager . AI-Browser --platform=win32 --arch=x64 --out=release --overwrite",
+    "build:mac": "npx @electron/packager . AI-Browser --platform=darwin --arch=x64 --out=release --overwrite && npx @electron/packager . AI-Browser --platform=darwin --arch=arm64 --out=release --overwrite",
+    "build:linux": "npx @electron/packager . AI-Browser --platform=linux --arch=x64 --out=release --overwrite",
+    "build:all": "npm run build:win && npm run build:mac && npm run build:linux"
   },
   "devDependencies": {
     "electron": "^28.3.3",
-    "electron-builder": "^24.13.3"
+    "@electron/packager": "^20.0.0"
   },
   "build": {
     "appId": "com.aibrowser.app",

@@ -68,3 +68,37 @@ npx @electron/packager . AI-Browser --platform=win32 --arch=x64 --out=release --
 - AI 网站登录状态保存在 `C:\Users\[用户名]\AppData\Roaming\ai-browser`
 - 广播注入依赖网站 DOM 结构，如网站更新可能导致注入失败（会提示复制到剪贴板）
 - Trellis 相关文件（`.trellis/`、`plugins/`）由 Trellis 自动管理，不要手动修改
+
+## 版本与发布
+
+### 版本规则 (SemVer)
+
+格式：`vMAJOR.MINOR.PATCH`
+- **MAJOR**：破坏性更新，不兼容的 API 变更
+- **MINOR**：新增功能，向后兼容
+- **PATCH**：问题修复，向后兼容
+
+详见 `docs/versioning.md`
+
+### 发布流程
+
+```bash
+# 1. 提交代码
+git add . && git commit -m "feat: xxx"
+
+# 2. 打标签 (根据修改类型选择)
+git tag v1.0.0      # 首次发布
+git tag v1.0.1      # PATCH: 修复问题
+git tag v1.1.0      # MINOR: 新增功能
+git tag v2.0.0      # MAJOR: 重大更新
+
+# 3. 推送标签 (自动触发 GitHub Actions 打包发布)
+git push origin --tags
+```
+
+### 自动化
+
+- **PR/推送到 main**：自动运行 CI 测试
+- **推送标签 `v*`**：自动构建 Windows/macOS/Linux 多平台并发布到 GitHub Releases
+
+详见 `.github/workflows/`
