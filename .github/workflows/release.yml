@@ -20,10 +20,10 @@ jobs:
             platform: linux
             arch: x64
           - os: windows-latest
-            platform: win32
+            platform: win
             arch: x64
           - os: macos-latest
-            platform: darwin
+            platform: mac
             arch: x64
 
     steps:
@@ -37,54 +37,83 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build
-        run: npx @electron/packager . AI-Browser --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=release --overwrite
+      - name: Install Linux deps (libfuse2 for AppImage)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse2
 
+      - name: Build with electron-builder
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }}
+
+      # ─── Windows: zip + Setup.exe ───
       - name: Package Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "=== Checking release folder ==="
-          Get-ChildItem -Path "release" -Recurse | Select-Object Name, Length | Format-Table
-          Write-Host "=== Creating zip ==="
-          Compress-Archive -Path "release/AI-Browser-win32-x64/*" -DestinationPath "AI-Browser-win32-x64.zip" -Force
-          Write-Host "=== Result ==="
-          Get-Item AI-Browser-win32-x64.zip | Select-Object Name, Length
-
-      - name: Package Linux
-        if: runner.os == 'Linux'
-        run: |
-          tar -czvf AI-Browser-linux-x64.tar.gz -C release AI-Browser-linux-x64
-          ls -lh AI-Browser-linux-x64.tar.gz
+          Write-Host "=== dist listing ==="
+          Get-ChildItem -Path "dist" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object FullName, Length | Format-Table -AutoSize
+          Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "AI-Browser-win32-x64.zip" -Force
+          $setup = Get-ChildItem -Path "dist" -Filter "*Setup*.exe" | Select-Object -First 1
+          if ($setup) { Copy-Item $setup.FullName "AI-Browser-Setup-x64.exe" }
+          Write-Host "=== Output ==="
+          Get-ChildItem AI-Browser-* | Select-Object Name, @{N='MB';E={[math]::Round($_.Length/1MB,1)}}
 
       - name: Upload Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: win
-          path: AI-Browser-win32-x64.zip
+          path: |
+            AI-Browser-win32-x64.zip
+            AI-Browser-Setup-x64.exe
+
+      # ─── Linux: tar.gz + AppImage ───
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          echo "=== dist listing ==="
+          find dist -type f -exec ls -lh {} \;
+          tar -czf AI-Browser-linux-x64.tar.gz -C dist/linux-unpacked .
+          cp dist/*.AppImage AI-Browser-x86_64.AppImage
+          chmod +x AI-Browser-x86_64.AppImage
+          echo "=== Output ==="
+          ls -lh AI-Browser-*
 
       - name: Upload Linux
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: AI-Browser-linux-x64.tar.gz
+          path: |
+            AI-Browser-linux-x64.tar.gz
+            AI-Browser-x86_64.AppImage
 
+      # ─── macOS: zip + dmg ───
       - name: Package macOS
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          cd release
-          zip -r ../AI-Browser-darwin-x64.zip AI-Browser-darwin-x64
-          ls -lh ../AI-Browser-darwin-x64.zip
+          echo "=== dist listing ==="
+          find dist -type f -exec ls -lh {} \; 2>/dev/null || true
+          find dist -type d -maxdepth 2 -exec echo "dir: {}" \; 2>/dev/null || true
+          if [ -d "dist/mac" ]; then
+            (cd dist/mac && zip -r ../../AI-Browser-darwin-x64.zip .)
+          elif [ -d "dist/mac-x64" ]; then
+            (cd dist/mac-x64 && zip -r ../../AI-Browser-darwin-x64.zip .)
+          fi
+          cp dist/*.dmg AI-Browser-x64.dmg 2>/dev/null || echo "No DMG found"
+          echo "=== Output ==="
+          ls -lh AI-Browser-* 2>/dev/null || true
 
       - name: Upload macOS
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: darwin
-          path: AI-Browser-darwin-x64.zip
+          path: |
+            AI-Browser-darwin-x64.zip
+            AI-Browser-x64.dmg
 
   release:
     needs: build
@@ -96,19 +125,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
-      - name: Rename and list
+      - name: Collect and list
         run: |
-          mv artifacts/win/AI-Browser-win32-x64.zip ./AI-Browser-win32-x64.zip
-          mv artifacts/linux/AI-Browser-linux-x64.tar.gz ./AI-Browser-linux-x64.tar.gz
-          mv artifacts/darwin/AI-Browser-darwin-x64.zip ./AI-Browser-darwin-x64.zip
-          ls -lh *.zip *.tar.gz
+          mkdir -p release-assets
+          find artifacts -type f -exec cp {} release-assets/ \;
+          echo "=== Release assets ==="
+          ls -lh release-assets/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            AI-Browser-win32-x64.zip
-            AI-Browser-linux-x64.tar.gz
-            AI-Browser-darwin-x64.zip
+          files: release-assets/*
           generate_release_notes: true
