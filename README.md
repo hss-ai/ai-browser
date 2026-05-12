@@ -1,10 +1,10 @@
-# 🤖 AI Browser — 多模型对比
+# 🤖 AI Browser — 智能多模态对比平台
 
 <p align="center">
   <img src="screenshot.png" alt="AI Browser 界面截图" width="100%">
 </p>
 
-**AI Browser** 是一款桌面多 AI 模型分屏对比浏览器。基于 Electron，在一个窗口内同时打开 ChatGPT、Claude、Gemini、DeepSeek、智谱清言，一键广播提问，实时横向对比回答。
+**AI Browser** 是一款专为 AI 模型评估与对比设计的智能桌面浏览器。基于 Electron 构建，支持在统一界面内同时运行 ChatGPT、Claude、Gemini、DeepSeek、智谱清言等主流大模型，通过一键广播提问与实时横向对比，帮助用户高效评估不同 AI 模型的表现差异。
 
 ## ✨ 亮点功能
 
