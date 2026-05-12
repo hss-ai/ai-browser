@@ -1,7 +1,7 @@
 // ─── FINGERPRINT UI ───
 // Controls fingerprint protection toggle and profile injection into webviews
 
-let fpConfig = { enabled: false };
+let fpConfig = { enabled: true };
 
 // ── Load / Save ──
 function loadFpConfig() {
