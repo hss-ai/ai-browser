@@ -35,7 +35,7 @@ jobs:
           node-version: '22'
 
       - name: Install
-        run: npm ci
+        run: npm install
 
       - name: Install Linux deps (libfuse2 for AppImage)
         if: runner.os == 'Linux'
@@ -44,7 +44,8 @@ jobs:
       - name: Build with electron-builder
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }}
+          DEBUG: 'electron-builder'
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish=never
 
       # ─── Windows: zip + Setup.exe ───
       - name: Package Windows
