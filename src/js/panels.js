@@ -154,12 +154,24 @@ function setLayout(n) {
 let resizing = null;
 let resizeStartX = 0;
 let resizeStartFlex = 0;
+let resizeNextPanel = null;
+let resizeNextStartFlex = 0;
 
 function startResize(e, panelId) {
+  e.preventDefault();
   resizing = panelId;
   resizeStartX = e.clientX;
   const panel = document.getElementById(`panel-${panelId}`);
   resizeStartFlex = parseFloat(getComputedStyle(panel).flexGrow) || 1;
+  // 找到右侧相邻的可见面板
+  const allPanels = Array.from(document.querySelectorAll('#panels-container > .panel:not(.hidden)'));
+  const idx = allPanels.findIndex(p => p.id === `panel-${panelId}` || p.dataset.ai === panelId || p.dataset.type === panelId);
+  if (idx >= 0 && idx < allPanels.length - 1) {
+    resizeNextPanel = allPanels[idx + 1];
+    resizeNextStartFlex = parseFloat(getComputedStyle(resizeNextPanel).flexGrow) || 1;
+  }
+  // 锁定 body 光标和选择
+  document.body.classList.add('resizing');
   document.addEventListener('mousemove', onResize);
   document.addEventListener('mouseup', stopResize);
 }
@@ -170,12 +182,31 @@ function onResize(e) {
   const dx = e.clientX - resizeStartX;
   const ratio = dx / container.offsetWidth;
   const panel = document.getElementById(`panel-${resizing}`);
-  const newFlex = Math.max(0.3, resizeStartFlex + ratio * activePanels.size);
+  if (!panel) return;
+
+  // 限制最小/最大 flex
+  const newFlex = Math.max(0.3, Math.min(5, resizeStartFlex + ratio * 3));
   panel.style.flex = newFlex;
+  panel.style.transition = 'none';
+
+  // 同步调整相邻面板
+  if (resizeNextPanel) {
+    const nextNewFlex = Math.max(0.3, resizeNextStartFlex - ratio * 3);
+    resizeNextPanel.style.flex = nextNewFlex;
+    resizeNextPanel.style.transition = 'none';
+  }
 }
 
 function stopResize() {
+  if (!resizing) return;
+  // 恢复过渡动画
+  const panel = document.getElementById(`panel-${resizing}`);
+  if (panel) panel.style.transition = '';
+  if (resizeNextPanel) resizeNextPanel.style.transition = '';
+
+  document.body.classList.remove('resizing');
   resizing = null;
+  resizeNextPanel = null;
   document.removeEventListener('mousemove', onResize);
   document.removeEventListener('mouseup', stopResize);
 }
