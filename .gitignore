@@ -1,7 +1,34 @@
+# 依赖
 node_modules/
+
+# 构建输出
 release/
 release2/
 dist/
+
+# 日志
 *.log
+
+# 系统文件
 .DS_Store
 Thumbs.db
+
+# IDE / Agent 本地配置
+.agents/
+.claude/
+.opencode/
+.qoder/
+.vscode/
+
+# Trellis 运行时状态（每次构建都会变化）
+.odd/
+
+# Trellis 插件（自动管理，与 .claude/.opencode 重复）
+plugins/
+
+# 本地工具配置
+.mcp.json
+opencode.json
+
+# 截图
+*.png
