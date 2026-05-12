@@ -21,6 +21,7 @@ if (fpConfig.enabled) {
 updateClock();
 setInterval(updateClock, 1000);
 
-// 初始状态：默认 4 栏（隐藏智谱）
-setLayout(4);
-setStatus('就绪 — 开启广播模式同步主面板，或点 + 新增同型 AI 的其他账号副本（Cmd/Ctrl+Enter 发送）');
+// 初始状态：默认 3 栏（GPT / Gemini / DeepSeek，Claude 和智谱默认隐藏）
+setLayout(3);
+autoBroadcastCheck();
+setStatus('就绪 — 按下 Enter 发送到所有可见面板（Cmd/Ctrl+Enter 也可发送）');

@@ -11,11 +11,36 @@ function toggleBroadcast() {
   showToast(broadcastOn ? '📡 广播模式开启（仅主面板）' : '广播模式已关闭');
 }
 
+// enable broadcast silently (no toast)
+function enableBroadcastSilent() {
+  if (broadcastOn) return;
+  broadcastOn = true;
+  const btn = document.getElementById('broadcast-toggle');
+  const label = document.getElementById('broadcast-label');
+  btn.classList.add('on');
+  label.textContent = '广播开';
+  document.getElementById('query-input').placeholder = '输入问题，广播到所有主面板…（副本不包含）';
+}
+
+// auto-enable broadcast when >= 2 primary panels visible
+function autoBroadcastCheck() {
+  if (broadcastOn) return;
+  const primaryCount = Array.from(activePanels).filter(id => {
+    const panel = document.getElementById(`panel-${id}`);
+    return panel && panel.dataset.primary === '1';
+  }).length;
+  if (primaryCount >= 2) {
+    enableBroadcastSilent();
+    setStatus('已自动开启广播模式');
+  }
+}
+
 // ─── SEND QUERY ─── 仅向主面板广播，副本排除
 function sendQuery() {
   const q = document.getElementById('query-input').value.trim();
   if (!q) { showToast('请先输入问题'); return; }
-  if (!broadcastOn) { showToast('请先开启广播模式'); return; }
+  // Auto-enable broadcast if not already on
+  enableBroadcastSilent();
 
   const targets = Array.from(activePanels).filter(id => {
     const panel = document.getElementById(`panel-${id}`);
@@ -50,5 +75,11 @@ function sendQuery() {
 }
 
 function handleKey(e) {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendQuery();
+  // Ctrl/Cmd + Enter always sends
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { sendQuery(); return; }
+  // Plain Enter sends if there is input text
+  if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+    const q = document.getElementById('query-input').value.trim();
+    if (q) sendQuery();
+  }
 }

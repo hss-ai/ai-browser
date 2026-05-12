@@ -32,6 +32,7 @@ function togglePanel(type) {
     pill.classList.add('active');
     panel.classList.remove('hidden');
   }
+  autoBroadcastCheck();
 }
 
 // ─── CLONE / CLOSE ───
@@ -145,6 +146,8 @@ function setLayout(n) {
     const pill = document.querySelector(`.status-pill[data-ai="${type}"]`);
     if (pill) pill.classList.remove('active');
   });
+  // Auto-enable broadcast when showing multiple panels
+  autoBroadcastCheck();
 }
 
 // ─── RESIZE ───

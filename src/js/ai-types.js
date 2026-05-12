@@ -176,4 +176,4 @@ const AI_TYPES = {
   }
 };
 
-const PRIMARY_ORDER = ['chatgpt', 'claude', 'gemini', 'deepseek', 'zhipu'];
+const PRIMARY_ORDER = ['chatgpt', 'gemini', 'deepseek', 'claude', 'zhipu'];

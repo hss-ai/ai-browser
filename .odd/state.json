@@ -2,7 +2,7 @@
   "version": "2.2.0",
   "projectName": "ai-browser",
   "initialisedAt": "2026-05-11T15:05:33+08:00",
-  "lastSaved": "2026-05-12T00:00:00+08:00",
+  "lastSaved": "2026-05-12T01:00:00+08:00",
   "lastCommit": null,
   "lastCommitAt": null,
   "currentPhase": "build",
@@ -70,5 +70,5 @@
   "debugSummary": null,
   "debugStartedAt": null,
   "securityBaselineVersion": "2026-04-12",
-  "notes": "2026-05-12 指纹浏览器功能实现。Outcome 3 代码已写入 src/js/fingerprint-*.js、src/main.js、src/index.html 等文件，plan.md 与 outcome 文档已补齐。下一步：按 outcome-03 Field 3 逐条验证，通过后 commit。"
+  "notes": "2026-05-12 指纹浏览器功能实现 + 用户体验优化：默认 3 栏（GPT/Gemini/DeepSeek，Claude 默认隐藏）；Enter 键发送到所有面板；多面板时自动开启广播。Outcome 3 代码已写入。下一步：按 outcome-03 Field 3 逐条验证，通过后 commit。"
 }
