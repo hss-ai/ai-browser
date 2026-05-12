@@ -89,6 +89,36 @@ ipcMain.handle('clear-proxy', async () => {
   }
 });
 
+// ─── FINGERPRINT ───
+const fingerprintSeeds = {}; // partition -> seed mapping
+let fingerprintEnabled = false;
+
+// Generate a deterministic seed from partition name
+function getFingerprintSeed(partition) {
+  if (!fingerprintSeeds[partition]) {
+    // Create a seed from partition + random component
+    const baseSeed = partition.split('').reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0);
+    const randPart = Math.floor(Math.random() * 0xFFFFFFFF);
+    fingerprintSeeds[partition] = Math.abs(baseSeed ^ randPart) || 1;
+  }
+  return fingerprintSeeds[partition];
+}
+
+ipcMain.handle('set-fingerprint', async (_event, enabled) => {
+  fingerprintEnabled = !!enabled;
+  console.log('[Fingerprint]', fingerprintEnabled ? 'Enabled' : 'Disabled');
+  return { success: true, enabled: fingerprintEnabled };
+});
+
+ipcMain.handle('get-fingerprint-status', async () => {
+  return { enabled: fingerprintEnabled, seeds: Object.keys(fingerprintSeeds).length };
+});
+
+ipcMain.handle('get-fingerprint-seed', async (_event, partition) => {
+  const seed = getFingerprintSeed(partition || 'persist:aisession');
+  return { seed, partition };
+});
+
 app.whenReady().then(() => {
   // Set a realistic user agent
   const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';

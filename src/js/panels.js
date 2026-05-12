@@ -74,6 +74,8 @@ function clonePanel(type) {
       id="wv-${panelId}"
       src="${cfg.url}"
       partition="persist:clone-${panelId}"
+      preload="./js/fingerprint-core.js"
+      webpreferences="contextIsolation=no"
       useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       allowpopups
     ></webview>
@@ -82,7 +84,12 @@ function clonePanel(type) {
   document.getElementById('panels-container').appendChild(panel);
   activePanels.add(panelId);
   // 绑定事件需等 webview 插入 DOM
-  setTimeout(() => bindWebviewEvents(panelId), 0);
+  setTimeout(() => {
+    bindWebviewEvents(panelId);
+    // 注入指纹保护到新副本
+    const wvEl = document.getElementById(`wv-${panelId}`);
+    if (wvEl) injectFingerprintForClone(wvEl, panelId);
+  }, 0);
   showToast(`➕ 已新增 ${cfg.name} #${idx}（独立会话）`);
 }
 

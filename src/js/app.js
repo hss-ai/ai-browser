@@ -9,6 +9,14 @@ if (proxyConfig.enabled) {
   document.getElementById('proxy-btn').classList.add('active');
 }
 
+// 启动时加载指纹配置
+loadFpConfig();
+if (fpConfig.enabled) {
+  document.getElementById('fingerprint-btn').classList.add('active');
+  // 延迟注入，等待 webview DOM 就绪
+  setTimeout(() => injectAllFingerprints(), 500);
+}
+
 // 启动时钟
 updateClock();
 setInterval(updateClock, 1000);

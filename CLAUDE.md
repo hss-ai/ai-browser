@@ -80,45 +80,25 @@ npx @electron/packager . AI-Browser --platform=win32 --arch=x64 --out=release --
 
 详见 `docs/versioning.md`
 
-### 修改完成后必须执行的流程
-
-每次代码修改完成后，必须按顺序执行以下步骤：
+### 发布流程
 
 ```bash
-# 1. 提交代码到 main 分支
-git add .
-git commit -m "<type>: <描述>"
+# 1. 提交代码
+git add . && git commit -m "feat: xxx"
 
-# type 可选: feat | fix | docs | style | refactor | test | chore
-
-# 2. 推送代码触发 CI
-git push origin main
-
-# 3. 打标签（根据修改类型选择）
+# 2. 打标签 (根据修改类型选择)
 git tag v1.0.0      # 首次发布
 git tag v1.0.1      # PATCH: 修复问题
 git tag v1.1.0      # MINOR: 新增功能
 git tag v2.0.0      # MAJOR: 重大更新
 
-# 4. 推送标签触发打包发布
+# 3. 推送标签 (自动触发 GitHub Actions 打包发布)
 git push origin --tags
 ```
 
-### 自动化说明
+### 自动化
 
-- **推送到 main**：自动运行 CI 测试（安装依赖、验证构建）
-- **推送标签 `v*`**：自动构建 Windows/macOS/Linux 三平台并发布到 GitHub Releases
+- **PR/推送到 main**：自动运行 CI 测试
+- **推送标签 `v*`**：自动构建 Windows/macOS/Linux 多平台并发布到 GitHub Releases
 
-### GitHub Actions
-
-| Workflow | 触发条件 | 作用 |
-|----------|----------|------|
-| `ci.yml` | push 到 main | 运行测试和构建验证 |
-| `release.yml` | push 标签 `v*` | 构建三平台可执行文件并发布 |
-
-### Release 下载
-
-发布成功后从 GitHub 下载：
-- Windows: `AI-Browser-win32-x64.zip`
-- Linux: `AI-Browser-linux-x64.tar.gz`
-- macOS: `AI-Browser-darwin-x64.zip`
+详见 `.github/workflows/`

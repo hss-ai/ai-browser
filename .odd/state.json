@@ -2,12 +2,12 @@
   "version": "2.2.0",
   "projectName": "ai-browser",
   "initialisedAt": "2026-05-11T15:05:33+08:00",
-  "lastSaved": "2026-05-11T17:10:00+08:00",
+  "lastSaved": "2026-05-12T00:00:00+08:00",
   "lastCommit": null,
   "lastCommitAt": null,
   "currentPhase": "build",
   "planningPhase": "retroactive",
-  "currentStep": "outcome-02-built-pending-verification",
+  "currentStep": "outcome-03-built-pending-verification",
   "personas": [
     {
       "id": "xiaohe",
@@ -38,6 +38,16 @@
       "implementationFiles": ["src/index.html", "src/main.js"],
       "registeredVia": "retroactive-plan-B",
       "registeredAt": "2026-05-11T17:10:00+08:00"
+    },
+    {
+      "id": "outcome-03",
+      "name": "指纹浏览器防护",
+      "phase": "C",
+      "status": "built-pending-verification",
+      "doc": "docs/outcomes/outcome-03-fingerprint-browser.md",
+      "implementationFiles": ["src/index.html", "src/main.js", "src/js/fingerprint-core.js", "src/js/fingerprint-profiles.js", "src/js/fingerprint-ui.js", "src/js/app.js", "src/js/panels.js", "src/css/main.css"],
+      "registeredVia": "plan-C",
+      "registeredAt": "2026-05-12T00:00:00+08:00"
     }
   ],
   "contractsMapped": false,
@@ -52,13 +62,13 @@
   "verificationConfirmed": false,
   "debugSession": false,
   "swarmActive": false,
-  "buildPhase": "B",
-  "currentBuildPhase": "B",
+  "buildPhase": "C",
+  "currentBuildPhase": "C",
   "buildMode": "retroactive",
   "debugStrategy": null,
   "debugTarget": null,
   "debugSummary": null,
   "debugStartedAt": null,
   "securityBaselineVersion": "2026-04-12",
-  "notes": "2026-05-11 方案 2：事后轻量补登记。Outcome 1（新增智谱 + 多账号副本）代码已写入 src/index.html，plan.md 与 outcome 文档已补齐。下一步：按 outcome-01 Field 4 逐条验证，通过后 commit，消息：'Outcome 1 小何在同一屏幕对比多个 AI — verified'。下一个变更请走正规 /trellis 流程。"
+  "notes": "2026-05-12 指纹浏览器功能实现。Outcome 3 代码已写入 src/js/fingerprint-*.js、src/main.js、src/index.html 等文件，plan.md 与 outcome 文档已补齐。下一步：按 outcome-03 Field 3 逐条验证，通过后 commit。"
 }
