@@ -1,24 +1,42 @@
-# AI Browser
+# 🤖 AI Browser — 多模型对比
 
-多 AI 模型分屏对比浏览器。基于 Electron，支持同时打开 ChatGPT、Claude、Gemini、DeepSeek，统一输入问题，横向对比回答。
+<p align="center">
+  <img src="screenshot.png" alt="AI Browser 界面截图" width="100%">
+</p>
 
-## 功能特性
+**AI Browser** 是一款桌面多 AI 模型分屏对比浏览器。基于 Electron，在一个窗口内同时打开 ChatGPT、Claude、Gemini、DeepSeek、智谱清言，一键广播提问，实时横向对比回答。
 
-- **分屏对比**：支持 2/3/4 栏布局，同时查看多个 AI 回答
-- **广播模式**：开启后输入问题自动同步到所有 AI 面板
-- **面板控制**：可单独开关某个 AI，拖拽调整宽度
-- **状态持久化**：登录状态自动保存，下次打开无需重新登录
+## ✨ 亮点功能
 
-## 支持的 AI
+| 功能 | 说明 |
+|------|------|
+| 📡 **一键广播** | 输入问题，按 Enter 自动注入到所有可见 AI 面板，同时触发发送 |
+| 🖥️ **多栏布局** | 支持 2 / 3 / 4 / 5 栏自由切换，拖拽分隔线调整宽度 |
+| 👥 **多账号副本** | 每个 AI 面板可克隆副本，独立 session 互不干扰 |
+| 🔐 **指纹伪装** | 伪造 WebGL / Canvas / AudioContext / WebRTC 指纹，防 AI 网站风控 |
+| 🌐 **代理支持** | 内置 HTTP / HTTPS / SOCKS4 / SOCKS5 代理，独立配置 |
+| 💾 **登录持久化** | 关闭重启无需重新登录，状态自动保存 |
 
-- ChatGPT (chatgpt.com)
-- Claude (claude.ai)
-- Gemini (gemini.google.com)
-- DeepSeek (chat.deepseek.com)
+## 🌍 支持的 AI 模型
 
-## 快速开始
+| 模型 | 网址 | 状态 |
+|------|------|:--:|
+| ChatGPT | chatgpt.com | ✅ |
+| Claude | claude.ai | ✅ |
+| Gemini | gemini.google.com | ✅ |
+| DeepSeek | chat.deepseek.com | ✅ |
+| 智谱清言 | chatglm.cn | ✅ |
 
-### 开发模式
+## ⌨️ 操作方式
+
+- **Enter** — 发送问题到所有可见面板
+- **Ctrl+Enter** / **Cmd+Enter** — 同上
+- **点击状态栏标签** — 单独开关某个 AI 面板
+- **拖动分隔线** — 调整面板宽度
+- **广播开关** — 开启/关闭统一广播模式
+- **+ 按钮** — 新增任意 AI 的独立副本
+
+## 🚀 快速开始
 
 ```bash
 # 安装依赖
@@ -28,48 +46,50 @@ npm install
 npm start
 ```
 
-### 打包发布
+## 📦 打包发布
 
 ```bash
-# 打包 Windows 版本
-npm run build:win
-
-# 打包 macOS 版本
-npm run build:mac
-
-# 打包 Linux 版本
-npm run build:linux
-
-# 打包所有平台
-npm run build:all
+npm run dist:win      # Windows (.exe NSIS 安装包)
+npm run dist:mac      # macOS (.dmg)
+npm run dist:linux    # Linux (.AppImage)
+npm run dist:all      # 三端同时打包
 ```
 
-打包后的文件在 `release/` 目录。
+## 🛠 技术栈
 
-## 版本规则
+- **Electron 28** — 桌面框架
+- **Chromium webview** — 内嵌 AI 网站
+- **Node.js 18+** — 主进程
 
-本项目使用语义化版本 (SemVer)：
+## 📂 项目结构
 
-- **主版本 (MAJOR)**：不兼容的重大更新
-- **次版本 (MINOR)**：新增功能（向下兼容）
-- **修订版 (PATCH)**：问题修复
+```
+src/
+├── main.js              # Electron 主进程
+├── index.html           # 主界面
+├── css/main.css         # 样式（暗色主题）
+└── js/
+    ├── ai-types.js      # AI 模型定义与注入逻辑
+    ├── app.js           # 应用入口
+    ├── broadcast.js     # 广播引擎
+    ├── panels.js        # 面板管理（布局/克隆/显隐）
+    ├── proxy.js         # 代理模块
+    ├── fingerprint-core.js   # 指纹伪装（注入 webview）
+    ├── fingerprint-ui.js     # 指纹设置界面
+    ├── webview.js       # webview 生命周期
+    ├── state.js         # 状态持久化
+    ├── clock.js         # 状态栏时钟
+    └── toast.js         # Toast 通知
+```
 
-格式：`vMAJOR.MINOR.PATCH`，例如 `v1.0.0`
+## 🏗 开发规范
 
-## 开发规范
+使用 Trellis + OpenSpec 进行规格驱动开发（SDD）：
 
-使用 OpenSpec + Trellis 进行规格驱动开发：
+- `docs/plan.md` — 主实施计划
+- `docs/outcomes/` — 验收标准
+- `docs/architecture/` — 架构文档
 
-- 使用 `/trellis` 启动 Trellis 会话
-- 变更遵循：提案 → 实现 → 归档 流程
-- 详见 [CLAUDE.md](CLAUDE.md)
-
-## 技术栈
-
-- Electron 28
-- webview (Chromium)
-- Node.js 18+
-
-## License
+## 📄 License
 
 MIT
