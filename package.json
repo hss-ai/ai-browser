@@ -1,6 +1,6 @@
 {
   "name": "ai-browser",
-  "version": "2.0.0-dev",
+  "version": "2.0.0",
   "description": "Multi-AI Split Screen Browser",
   "main": "src/main.js",
   "scripts": {

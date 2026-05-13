@@ -96,14 +96,18 @@
   </button>
 
   <div id="query-wrap">
+    <div id="mention-badges" style="display:none"></div>
     <input
       type="text"
       id="query-input"
       placeholder="输入问题，广播到所有 AI…"
     />
+    <button id="template-btn" class="titlebar-icon-btn" onclick="toggleTemplatePanel()" title="模板库" aria-label="模板库" style="margin-right:4px">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+    </button>
     <button id="send-btn" onclick="sendQuery()">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      <span>发送给全部</span>
+      <span data-i18n="toolbar.send">发送给全部</span>
     </button>
   </div>
 </div>
@@ -306,8 +310,10 @@
 <div id="statusbar">
   <div class="status-text" id="status-msg">就绪 — 开启广播模式，一次提问同步到所有 AI</div>
   <div style="flex:1"></div>
+  <div id="metrics-display" class="metrics-display" style="display:none"></div>
+  <button class="status-btn" onclick="toggleHistoryDrawer()" title="会话历史" aria-label="会话历史" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:0 8px;font-size:12px">📋 历史</button>
   <div class="status-text" id="status-clock"></div>
-  <div class="status-text">AI Browser v2.0.0-dev</div>
+  <div class="status-text">AI Browser v2.0.0</div>
 </div>
 
 <!-- FINGERPRINT MODAL -->
@@ -386,6 +392,65 @@
   </div>
 </div>
 
+<!-- HISTORY DRAWER (FR-D01/D02) -->
+<div id="history-drawer" class="history-drawer">
+  <div class="history-drawer-header">
+    <h3 data-i18n="history.title">会话历史</h3>
+    <button class="settings-modal-close" onclick="toggleHistoryDrawer()" aria-label="关闭历史">✕</button>
+  </div>
+  <div class="history-filters">
+    <button class="history-filter-btn active" data-filter="all" onclick="filterHistory('all')" data-i18n="history.filter.all">全部</button>
+    <button class="history-filter-btn" data-filter="favorite" onclick="filterHistory('favorite')" data-i18n="history.filter.favorite">收藏</button>
+  </div>
+  <div class="history-search-wrap">
+    <input type="text" id="history-search" placeholder="搜索历史…" oninput="searchHistory(event)" data-i18n-placeholder="history.search">
+  </div>
+  <div class="history-body">
+    <div id="history-list" class="history-list"></div>
+    <div id="history-detail" class="history-detail"></div>
+  </div>
+</div>
+
+<!-- TEMPLATE PANEL (FR-C04) -->
+<div id="template-panel" class="template-panel" style="display:none">
+  <div class="template-panel-header">
+    <h3 data-i18n="templates.title">模板库</h3>
+    <button class="settings-modal-close" onclick="toggleTemplatePanel()" aria-label="关闭模板">✕</button>
+  </div>
+  <div id="template-list" class="template-list"></div>
+  <div id="template-var-panel" class="template-var-panel" style="display:none"></div>
+</div>
+
+<!-- WORKFLOW PANEL (FR-C05) -->
+<div id="workflow-panel" class="workflow-panel" style="display:none">
+  <div class="workflow-panel-header">
+    <h3 data-i18n="workflow.title">工作流</h3>
+    <button class="settings-modal-close" onclick="toggleWorkflowPanel()" aria-label="关闭工作流">✕</button>
+  </div>
+  <div id="workflow-content" class="workflow-content"></div>
+</div>
+
+<!-- COMPARE VIEW (FR-C02) -->
+<div id="compare-view-overlay" class="compare-view-overlay" style="display:none" onclick="if(event.target===this)closeCompareView()">
+  <div class="compare-view-modal">
+    <div class="compare-view-header-bar">
+      <span data-i18n="compare.title">对比视图</span>
+      <button class="settings-modal-close" onclick="closeCompareView()" aria-label="关闭对比">✕</button>
+    </div>
+    <div id="compare-content" class="compare-content"></div>
+  </div>
+</div>
+
+<!-- PLUGIN PANEL (FR-E01) -->
+<div id="plugin-panel" class="plugin-panel" style="display:none">
+  <div class="plugin-panel-header">
+    <h3 data-i18n="plugins.title">插件</h3>
+    <button class="settings-modal-close" onclick="document.getElementById('plugin-panel').style.display='none'" aria-label="关闭插件">✕</button>
+  </div>
+  <div id="plugin-list" class="plugin-list"></div>
+  <iframe id="plugin-iframe" class="plugin-iframe" sandbox="allow-scripts" style="display:none"></iframe>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div id="settings-modal-overlay" onclick="if(event.target===this)closeSettingsModal()">
   <div id="settings-modal">
@@ -412,15 +477,56 @@
         </div>
       </div>
       <div class="settings-group">
-        <div class="settings-group-title">动效</div>
+        <div class="settings-group-title" data-i18n="settings.motion">动效</div>
         <label class="settings-check">
-          <input type="checkbox" id="settings-reduced-motion" onchange="toggleReducedMotion()"> 减少动效 (prefers-reduced-motion)
+          <input type="checkbox" id="settings-reduced-motion" onchange="toggleReducedMotion()"> <span data-i18n="settings.motion.reduce">减少动效</span>
         </label>
       </div>
       <div class="settings-group">
-        <div class="settings-group-title">关于</div>
-        <div class="settings-about">AI Browser v2.0-dev</div>
-        <div class="settings-about-sub">多模型对比工作台</div>
+        <div class="settings-group-title" data-i18n="settings.shortcuts">快捷键配置</div>
+        <div id="shortcut-editor"></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="settings.language">语言</div>
+        <div class="settings-options">
+          <label class="settings-radio">
+            <input type="radio" name="settings-locale" value="zh-CN" onchange="setLocale('zh-CN')" checked> <span data-i18n="settings.language.zh">中文</span>
+          </label>
+          <label class="settings-radio">
+            <input type="radio" name="settings-locale" value="en-US" onchange="setLocale('en-US')"> <span data-i18n="settings.language.en">English</span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="settings.sleep">面板休眠</div>
+        <label class="settings-check">
+          <input type="checkbox" id="settings-sleep-enabled" checked onchange="setSleepConfig(this.checked, parseInt(document.getElementById('settings-sleep-minutes').value))"> <span data-i18n="settings.sleep.enabled">启用面板休眠</span>
+        </label>
+        <div class="proxy-row">
+          <label data-i18n="settings.sleep.idle">空闲分钟数</label>
+          <input type="number" id="settings-sleep-minutes" value="5" min="1" max="60" onchange="setSleepConfig(document.getElementById('settings-sleep-enabled').checked, parseInt(this.value))">
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="settings.backup">备份</div>
+        <button class="settings-btn" onclick="createBackup().then(r=>{if(r.success)showToast('备份已创建');else showToast('备份失败: '+r.error)})" data-i18n="settings.backup.create">创建备份</button>
+        <button class="settings-btn" onclick="listBackups().then(list=>{if(list.length===0){showToast('无备份');return;}const ids=list.map(b=>b.id).join('\n');const id=prompt('选择备份ID:\n'+ids);if(id)restoreBackup(id).then(r=>{if(r.success)showToast('已恢复');else showToast('恢复失败: '+r.error)})})" data-i18n="settings.backup.restore">恢复备份</button>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="settings.privacy">隐私清理</div>
+        <button class="settings-btn" onclick="PRIMARY_ORDER.forEach(id=>clearPanelPrivacy(id));showToast('已清理所有面板隐私数据')" data-i18n="settings.privacy.clear">清除所有面板数据</button>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="settings.models">模型管理</div>
+        <div id="model-list"></div>
+        <button class="settings-btn" onclick="showToast('自定义模型功能开发中')" data-i18n="settings.models.add" style="margin-top:8px">添加模型</button>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="settings.about">关于</div>
+        <div class="settings-about" data-i18n="settings.about.version">AI Browser v2.0</div>
+        <div class="settings-about-sub" data-i18n="settings.about.desc">多模型对比工作台</div>
+        <button class="settings-btn" onclick="exportAllData()" data-i18n="export.json" style="margin-top:6px;margin-right:4px">导出 JSON</button>
+        <button class="settings-btn" onclick="importData()" data-i18n="export.import">导入</button>
       </div>
     </div>
     <div id="settings-modal-footer">
@@ -434,13 +540,24 @@
 
 <script src="js/ai-types.js"></script>
 <script src="js/state.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
+<script src="js/history-store.js"></script>
+<script src="js/diff.js"></script>
 <script src="js/webview.js"></script>
 <script src="js/command-palette.js"></script>
 <script src="js/shortcuts.js"></script>
 <script src="js/panel-sorter.js"></script>
 <script src="js/broadcast.js"></script>
+<script src="js/history-drawer.js"></script>
+<script src="js/compare-view.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/workflow.js"></script>
+<script src="js/plugin-host.js"></script>
+<script src="js/export.js"></script>
+<script src="js/metrics-view.js"></script>
+<script src="js/updater.js"></script>
 <script src="js/panels.js"></script>
 <script src="js/proxy.js"></script>
 <script src="js/fingerprint-ui.js"></script>

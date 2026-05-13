@@ -138,3 +138,89 @@ document.addEventListener('keydown', function(e) {
 
 // Initialize
 loadShortcuts();
+
+// ─── SHORTCUT EDITOR UI (FR-E05) ───
+let recordingShortcut = null; // cmdId being recorded
+
+function renderShortcutEditor() {
+  const container = document.getElementById('shortcut-editor');
+  if (!container) return;
+
+  const cmdLabels = {
+    'layout-2':          i18n('layout.2col'),
+    'layout-3':          i18n('layout.3col'),
+    'layout-4':          i18n('layout.4col'),
+    'layout-5':          i18n('layout.5col'),
+    'send':              '发送',
+    'clear-input':       '清除输入',
+    'cmd-palette':       '命令面板',
+    'settings':          '设置',
+    'search':            '搜索',
+    'toggle-broadcast':  '切换广播',
+  };
+
+  let html = '<div class="shortcut-editor-list">';
+  Object.entries(shortcuts).forEach(([cmdId, accel]) => {
+    const label = cmdLabels[cmdId] || cmdId;
+    const isRecording = recordingShortcut === cmdId;
+    html += `
+      <div class="shortcut-row">
+        <span class="shortcut-label">${label}</span>
+        <span class="shortcut-key${isRecording ? ' recording' : ''}"
+              data-cmd="${cmdId}"
+              onclick="startRecordingShortcut('${cmdId}')"
+              title="${i18n('settings.shortcuts.press')}">
+          ${isRecording ? '…' : accel}
+        </span>
+        ${hasConflict(cmdId, accel) ? `<span class="shortcut-conflict" title="${i18n('settings.shortcuts.conflict')}">⚠</span>` : ''}
+      </div>`;
+  });
+  html += '</div>';
+  html += `<button class="settings-btn" onclick="resetShortcuts();renderShortcutEditor()">${i18n('settings.shortcuts.reset')}</button>`;
+  container.innerHTML = html;
+
+  // If recording, add temporary keydown listener
+  if (recordingShortcut) {
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const parts = [];
+      if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+      if (e.altKey) parts.push('Alt');
+      if (e.shiftKey) parts.push('Shift');
+      if (e.key && e.key !== 'Control' && e.key !== 'Alt' && e.key !== 'Shift' && e.key !== 'Meta') {
+        parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+      }
+      if (parts.length >= 2) {
+        const accel = parts.join('+');
+        shortcuts[recordingShortcut] = accel;
+        saveShortcuts();
+        recordingShortcut = null;
+        document.removeEventListener('keydown', handler);
+        renderShortcutEditor();
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('keydown', handler, { once: false });
+    }, 100);
+  }
+}
+
+function startRecordingShortcut(cmdId) {
+  recordingShortcut = cmdId;
+  renderShortcutEditor();
+  // Stop recording after timeout
+  setTimeout(() => {
+    if (recordingShortcut === cmdId) {
+      recordingShortcut = null;
+      renderShortcutEditor();
+    }
+  }, 10000);
+}
+
+function hasConflict(cmdId, accel) {
+  for (const [otherId, otherAccel] of Object.entries(shortcuts)) {
+    if (otherId !== cmdId && otherAccel === accel) return true;
+  }
+  return false;
+}

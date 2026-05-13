@@ -90,7 +90,18 @@ function toggleSettingsModal() {
     const current = getTheme();
     const radio = document.querySelector(`input[name="settings-theme"][value="${current}"]`);
     if (radio) radio.checked = true;
+    // Sync locale radio
+    const localeRadio = document.querySelector(`input[name="settings-locale"][value="${currentLocale}"]`);
+    if (localeRadio) localeRadio.checked = true;
+    // Sync sleep config
+    const sleepCheck = document.getElementById('settings-sleep-enabled');
+    const sleepMin = document.getElementById('settings-sleep-minutes');
+    if (sleepCheck) sleepCheck.checked = sleepConfig.enabled;
+    if (sleepMin) sleepMin.value = sleepConfig.idleMinutes;
     overlay.style.display = 'flex';
+    // Render dynamic sections
+    renderShortcutEditor();
+    renderModelList();
   }
 }
 
@@ -113,4 +124,16 @@ function toggleReducedMotion() {
     document.documentElement.style.removeProperty('--motion-slow');
   }
   showToast(checked ? '动效已关闭' : '动效已开启');
+}
+
+function renderModelList() {
+  const container = document.getElementById('model-list');
+  if (!container) return;
+  container.innerHTML = Object.entries(AI_TYPES).map(([key, cfg]) => `
+    <div class="model-item">
+      <span class="model-name">${cfg.name}</span>
+      <span class="model-url">${cfg.url}</span>
+      <span class="model-status">✅ 已启用</span>
+    </div>
+  `).join('');
 }

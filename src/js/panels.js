@@ -245,3 +245,179 @@ function checkResponsiveLayout() {
 }
 
 window.addEventListener('resize', checkResponsiveLayout);
+
+// ─── FLEX GRID LAYOUT (GLM C3) ───
+let gridLayoutMode = 'auto'; // 'auto' | '2col' | '2row' | 'cross' | 'main-side'
+
+function setGridLayout(mode) {
+  gridLayoutMode = mode;
+  const container = document.getElementById('panels-container');
+  if (!container) return;
+
+  // Remove all grid classes
+  container.classList.remove('grid-2col', 'grid-2row', 'grid-cross', 'grid-main-side');
+
+  if (mode === 'auto') {
+    container.style.display = '';
+    return; // Default flex layout
+  }
+
+  container.style.display = 'grid';
+  container.classList.add('grid-' + mode);
+
+  switch (mode) {
+    case '2col':
+      container.style.gridTemplateColumns = '1fr 1fr';
+      container.style.gridTemplateRows = '1fr';
+      break;
+    case '2row':
+      container.style.gridTemplateColumns = '1fr';
+      container.style.gridTemplateRows = '1fr 1fr';
+      break;
+    case 'cross':
+      container.style.gridTemplateColumns = '1fr 1fr';
+      container.style.gridTemplateRows = '1fr 1fr';
+      break;
+    case 'main-side':
+      container.style.gridTemplateColumns = '2fr 1fr';
+      container.style.gridTemplateRows = '1fr';
+      break;
+  }
+
+  // Ensure all visible panels are shown in grid
+  document.querySelectorAll('#panels-container > .panel').forEach(p => {
+    if (!p.classList.contains('hidden')) {
+      p.style.display = '';
+    }
+  });
+}
+
+// ─── LAZY LOAD & SLEEP (FR-E02) ───
+let lazyLoadEnabled = true;
+let lastPanelVisibilityUpdate = 0;
+
+function updatePanelVisibility(panelId, visible) {
+  if (!lazyLoadEnabled) return;
+  const now = Date.now();
+
+  if (visible) {
+    panelLastVisible[panelId] = now;
+    // Wake up if sleeping
+    const panel = document.getElementById(`panel-${panelId}`);
+    if (panel && panel.dataset.sleeping === '1') {
+      wakePanel(panelId);
+    }
+  } else {
+    panelLastVisible[panelId] = now;
+  }
+
+  // Schedule sleep check
+  if (!panelSleepTimer) {
+    panelSleepTimer = setTimeout(scanSleepPanels, (sleepConfig.idleMinutes || 5) * 60000);
+  }
+}
+
+function scanSleepPanels() {
+  panelSleepTimer = null;
+  if (!sleepConfig.enabled) return;
+
+  const now = Date.now();
+  const idleThreshold = (sleepConfig.idleMinutes || 5) * 60000;
+
+  document.querySelectorAll('#panels-container > .panel').forEach(panel => {
+    const panelId = panel.dataset.ai || panel.id.replace('panel-', '');
+    // Only sleep clones and non-primary panels
+    if (panel.dataset.primary === '1' && !panel.classList.contains('hidden')) return;
+
+    const lastVisible = panelLastVisible[panelId] || 0;
+    if (panel.dataset.sleeping !== '1' && (now - lastVisible) > idleThreshold) {
+      sleepPanel(panelId);
+    }
+  });
+
+  // Reschedule
+  panelSleepTimer = setTimeout(scanSleepPanels, 60000);
+}
+
+function sleepPanel(panelId) {
+  const panel = document.getElementById(`panel-${panelId}`);
+  const wv = document.getElementById(`wv-${panelId}`);
+  if (!panel || !wv) return;
+
+  // Save current URL
+  try {
+    const url = wv.getURL();
+    if (url && url !== 'about:blank') {
+      panel.dataset.lastUrl = url;
+    }
+  } catch (e) { /* ignore */ }
+
+  panel.dataset.sleeping = '1';
+  // Show skeleton
+  const skeleton = panel.querySelector('.panel-skeleton');
+  if (skeleton) skeleton.classList.remove('hidden');
+
+  // Unload webview
+  try { wv.loadURL('about:blank'); } catch (e) { /* ignore */ }
+}
+
+function wakePanel(panelId) {
+  const panel = document.getElementById(`panel-${panelId}`);
+  const wv = document.getElementById(`wv-${panelId}`);
+  if (!panel || !wv) return;
+
+  panel.dataset.sleeping = '0';
+
+  // Restore URL
+  const lastUrl = panel.dataset.lastUrl;
+  if (lastUrl) {
+    try { wv.loadURL(lastUrl); } catch (e) { /* ignore */ }
+  }
+
+  // Show skeleton during reload
+  const skeleton = panel.querySelector('.panel-skeleton');
+  if (skeleton) skeleton.classList.remove('hidden');
+}
+
+function setSleepConfig(enabled, idleMinutes) {
+  sleepConfig.enabled = enabled;
+  sleepConfig.idleMinutes = idleMinutes || 5;
+  if (!enabled) {
+    // Wake all sleeping panels
+    document.querySelectorAll('#panels-container > .panel[data-sleeping="1"]').forEach(panel => {
+      wakePanel(panel.id.replace('panel-', ''));
+    });
+  }
+  // Save to settings
+  saveAppSettings({ sleep: sleepConfig }).catch(e => console.error(e));
+}
+
+// Track visibility changes via Intersection Observer
+function setupLazyLoadObserver() {
+  if (!window.IntersectionObserver) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const panel = entry.target;
+      const panelId = panel.id.replace('panel-', '');
+      updatePanelVisibility(panelId, entry.isIntersecting);
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('#panels-container > .panel').forEach(panel => {
+    observer.observe(panel);
+  });
+
+  // Also observe dynamically added panels
+  const panelObserver = new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      m.addedNodes.forEach(node => {
+        if (node.classList && node.classList.contains('panel')) {
+          observer.observe(node);
+        }
+      });
+    });
+  });
+
+  const container = document.getElementById('panels-container');
+  if (container) panelObserver.observe(container, { childList: true });
+}

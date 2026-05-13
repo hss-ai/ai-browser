@@ -221,4 +221,135 @@ const AI_TYPES = {
   }
 };
 
+// ─── RESPONSE EXTRACTION (FR-C01) ───
+// Each AI_TYPE gets an extract() method that returns a script string
+// to extract the latest assistant response from the webview DOM
+
+AI_TYPES.chatgpt.extract = () => `
+  (() => {
+    const msgs = document.querySelectorAll('div[data-message-author-role="assistant"]');
+    if (!msgs || msgs.length === 0) return '';
+    const last = msgs[msgs.length - 1];
+    // Try to get markdown content first
+    const md = last.querySelector('.markdown');
+    return (md || last).innerText || '';
+  })();
+`;
+
+AI_TYPES.chatgpt.selector = 'div[data-message-author-role="assistant"]';
+
+AI_TYPES.claude.extract = () => `
+  (() => {
+    // Claude uses various class patterns
+    const selectors = [
+      'div.font-claude-message',
+      'div[class*="message"][class*="assistant"]',
+      'div[class*="response"]',
+      '[data-testid="assistant-message"]',
+    ];
+    for (const sel of selectors) {
+      const msgs = document.querySelectorAll(sel);
+      if (msgs && msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        return last.innerText || '';
+      }
+    }
+    return '';
+  })();
+`;
+
+AI_TYPES.claude.selector = 'div[class*="message"][class*="assistant"], div.font-claude-message';
+
+AI_TYPES.gemini.extract = () => `
+  (() => {
+    const selectors = [
+      'div.response-content',
+      'model-response .markdown',
+      '.response-container',
+      '[class*="model-response"]',
+    ];
+    for (const sel of selectors) {
+      const msgs = document.querySelectorAll(sel);
+      if (msgs && msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        return last.innerText || '';
+      }
+    }
+    return '';
+  })();
+`;
+
+AI_TYPES.gemini.selector = 'div.response-content, model-response .markdown';
+
+AI_TYPES.deepseek.extract = () => `
+  (() => {
+    const msgs = document.querySelectorAll('div[class*="message"][class*="assistant"]');
+    if (!msgs || msgs.length === 0) {
+      // Fallback: any markdown content
+      const md = document.querySelector('.markdown');
+      return md ? md.innerText : '';
+    }
+    const last = msgs[msgs.length - 1];
+    return last.innerText || '';
+  })();
+`;
+
+AI_TYPES.deepseek.selector = 'div[class*="message"][class*="assistant"]';
+
+AI_TYPES.zhipu.extract = () => `
+  (() => {
+    const selectors = [
+      'div[class*="answer"]',
+      'div[class*="reply"]',
+      'div[class*="assistant"]',
+      '.chat-content .answer',
+    ];
+    for (const sel of selectors) {
+      const msgs = document.querySelectorAll(sel);
+      if (msgs && msgs.length > 0) {
+        const last = msgs[msgs.length - 1];
+        return last.innerText || '';
+      }
+    }
+    return '';
+  })();
+`;
+
+AI_TYPES.zhipu.selector = 'div[class*="answer"], div[class*="reply"]';
+
+// ─── RESPONSE CAPTURE UTILITY ───
+// Called from broadcast.js after sending query to start extraction
+function captureResponse(paneId, aiType, timeoutMs) {
+  const wv = document.getElementById(`wv-${paneId}`);
+  if (!wv) return Promise.resolve('');
+
+  const extractFn = AI_TYPES[aiType] && AI_TYPES[aiType].extract ? AI_TYPES[aiType].extract() : null;
+  if (!extractFn) return Promise.resolve('');
+
+  const startTime = Date.now();
+  const timeout = timeoutMs || 60000;
+
+  return new Promise((resolve) => {
+    let resolved = false;
+    const check = async () => {
+      if (resolved) return;
+      try {
+        const result = await wv.executeJavaScript(extractFn);
+        if (result && result.trim()) {
+          resolved = true;
+          resolve({ answer: result.trim(), latencyMs: Date.now() - startTime });
+          return;
+        }
+      } catch (e) { /* ignore */ }
+      if (Date.now() - startTime > timeout) {
+        resolved = true;
+        resolve({ answer: '', latencyMs: Date.now() - startTime });
+        return;
+      }
+      setTimeout(check, 1500);
+    };
+    setTimeout(check, 2000); // Initial wait for response to start appearing
+  });
+}
+
 const PRIMARY_ORDER = ['chatgpt', 'gemini', 'deepseek', 'claude', 'zhipu'];

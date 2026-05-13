@@ -130,11 +130,19 @@ _面向 Claude Opus 4.7 + GLM5.1 需求合并，实现 UI/UX 全面升级。_
       — 字体统一（Inter + JetBrains Mono 本地打包）
       详见 [`docs/outcomes/outcome-05-design-system-rewrite.md`](outcomes/outcome-05-design-system-rewrite.md)
 
-**M1 剩余待实施（FR-D01/FR-D03/FR-E02/FR-E04）：**
-- 本地会话历史（只读面板）
-- 加密存储（safeStorage/AES-256-GCM）
-- Webview 懒加载与休眠
-- 崩溃自动恢复（render-process-gone）
+---
+
+## Phase F — 全量升级（M1 剩余 + M2 协作增强 + M3 平台化 + GLM 特有）
+
+_基于 Claude Opus 4.7 + GLM5.1 需求合并的全量实现。_
+
+**Outcomes:**
+- [x] **Outcome 6 — 全量升级**
+      — **M1 剩余**：会话历史(FR-D01) + 加密存储(FR-D03) + 懒加载/休眠(FR-E02) + 崩溃恢复(FR-E04)
+      — **M2 协作增强**：响应抓取(FR-C01) + 对比视图+Diff(FR-C02) + 一键汇总(FR-C03) + 模板库(FR-C04) + 工作流(FR-C05) + 多格式导出(FR-C06) + @mention定向广播(FR-C07) + 标签/收藏/搜索(FR-D02) + 导入/导出JSON(FR-D04) + 隐私清理(FR-D07)
+      — **M3 平台化**：插件系统(FR-E01) + 快捷键编辑器(FR-E05) + i18n国际化(FR-E06) + 资源监控(FR-E03) + 自动更新(FR-E07) + 诊断包(FR-E08)
+      — **GLM 特有**：灵活分屏布局 + 模型管理 + Markdown增强 + 迷你模式 + 系统托盘 + 全局快捷键
+      详见 [`docs/outcomes/outcome-06-full-upgrade-m2-m3.md`](outcomes/outcome-06-full-upgrade-m2-m3.md)
 
 ---
 
@@ -146,12 +154,14 @@ _面向 Claude Opus 4.7 + GLM5.1 需求合并，实现 UI/UX 全面升级。_
 | Phase B — 模型扩展与多账号并行 | 🟡 代码完成，待 Verification Walkthrough |
 | Phase C — 安全与反风控 | 🟢 代码完成，待 Verification Walkthrough |
 | Phase D — 用户体验优化 | 🟢 代码完成，待 Verification Walkthrough |
-| Phase E — M1 基础重塑 | 🟢 代码完成（Outcome 5），待 Verification Walkthrough |
+| Phase E — M1 基础重塑 | 🟢 已验证（Outcome 5 verified） |
+| Phase F — 全量升级 | 🟢 代码完成（Outcome 6），待 Verification Walkthrough |
 
 **Last session:** 2026-05-11 — 事后补登记 Outcome 1（智谱 + 多账号副本）+ Outcome 2（广播点击修复 + 代理配置 + 本地时钟）。代码已合入 [src/index.html](../src/index.html) 和 [src/main.js](../src/main.js)。
 **2026-05-12 session:** — Outcome 3 指纹浏览器实现 + 用户体验优化：默认 3 栏（ChatGPT / Gemini / DeepSeek，Claude 默认隐藏）；Enter 键即发送到所有可见面板（不再需 Ctrl/Cmd）；≥2 个面板时自动开启广播。
 **2026-05-12 session 2:** — Outcome 4 智谱响应式适配：3 级全局 CSS 断点 + 智谱 webview CSS 注入。v1.4.0 已 tag 并推送。
 **2026-05-13 session:** — Outcome 5 设计系统重塑（M1 基础重塑）：基于 Claude Opus 4.7 + GLM5.1 需求合并。v2.0.0-dev。
+**2026-05-13 session 2:** — Outcome 6 全量升级：M1 剩余 + M2 协作增强 + M3 平台化 + GLM 特有功能全部完成。28 JS 文件语法验证通过，Electron 启动无错误。版本 v2.0.0。
 
 ---
 

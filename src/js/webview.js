@@ -140,4 +140,78 @@ function bindWebviewEvents(panelId) {
       overlay.style.pointerEvents = 'auto';
     }
   });
+
+  // ─── CRASH RECOVERY (FR-E04) ───
+  // Listen for render-process-gone (webview crash)
+  wv.addEventListener('render-process-gone', (e) => {
+    console.error(`[Crash] ${panelId} crashed:`, e.details);
+    const type = panel.dataset.type;
+    const name = AI_TYPES[type] ? AI_TYPES[type].name : panelId;
+
+    // Show crash overlay with reload button
+    const crashHtml = `
+      <div class="crash-overlay">
+        <div class="crash-icon">⚠</div>
+        <div class="crash-text">${i18n('toast.crashed', { name })}</div>
+        <button class="crash-btn" onclick="recoverPanel('${panelId}')">重载并继续</button>
+      </div>`;
+
+    // Insert crash overlay into panel
+    const existing = panel.querySelector('.crash-overlay');
+    if (existing) existing.remove();
+    panel.insertAdjacentHTML('beforeend', crashHtml);
+
+    showToast(i18n('toast.crashed', { name }));
+    // Notify main process
+    ipcRenderer.send('pane-crashed', { paneId: panelId, type });
+  });
+
+  // ─── MARKDOWN RENDERING INJECTION (GLM E2) ───
+  // Inject after page load to enhance AI response display
+  wv.addEventListener('dom-ready', () => {
+    // Inject markdown enhancement CSS
+    const mdCSS = `
+      /* ── AI Browser Markdown Enhancements ── */
+      pre { background: rgba(0,0,0,0.05) !important; border-radius: 6px !important; padding: 12px !important; overflow-x: auto !important; }
+      code { font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace !important; font-size: 0.9em !important; }
+      pre code { background: transparent !important; padding: 0 !important; }
+      blockquote { border-left: 3px solid var(--accent, #7c6af7) !important; padding-left: 12px !important; margin: 8px 0 !important; opacity: 0.85 !important; }
+      table { border-collapse: collapse !important; width: 100% !important; margin: 8px 0 !important; }
+      th, td { border: 1px solid rgba(128,128,128,0.2) !important; padding: 6px 10px !important; text-align: left !important; }
+      th { background: rgba(128,128,128,0.1) !important; font-weight: 600 !important; }
+      hr { border: none !important; border-top: 1px solid rgba(128,128,128,0.2) !important; margin: 12px 0 !important; }
+    `;
+    try { wv.insertCSS(mdCSS); } catch (e) { /* silent */ }
+  });
+}
+
+// ─── CRASH RECOVERY ───
+function recoverPanel(panelId) {
+  const panel = document.getElementById(`panel-${panelId}`);
+  if (!panel) return;
+
+  // Remove crash overlay
+  const crashOverlay = panel.querySelector('.crash-overlay');
+  if (crashOverlay) crashOverlay.remove();
+
+  // Get cached last query for this panel
+  getLastQuery().then(result => {
+    // Reload the webview
+    const wv = document.getElementById(`wv-${panelId}`);
+    if (wv) {
+      wv.reload();
+      const type = panel.dataset.type;
+      const name = AI_TYPES[type] ? AI_TYPES[type].name : panelId;
+      showToast(i18n('toast.crashed.recovered', { name }));
+
+      // Re-send last query if available
+      if (result.success && result.query) {
+        setTimeout(() => {
+          try {
+            wv.executeJavaScript(AI_TYPES[type].inject(result.query));
+          } catch (e) { /* ignore */ }
+        }, 3000);
+      }
+    }
+  });
 }

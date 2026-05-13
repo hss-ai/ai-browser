@@ -1,8 +1,13 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, Tray, Menu, globalShortcut, dialog, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const store = require('./main/store.js');
 
 let mainWindow;
+let tray = null;
+let isMiniMode = false;
+let lastQuery = null; // FR-E04: cache last broadcast query for crash recovery
+let lastQueryTime = 0;
 
 // 持久化缓存目录 - 保存在用户文档目录
 const userDataPath = path.join(app.getPath('documents'), 'AI-Browser-Cache');
@@ -119,6 +124,258 @@ ipcMain.handle('get-fingerprint-seed', async (_event, partition) => {
   return { seed, partition };
 });
 
+// ─── HISTORY / STORE IPC ───
+ipcMain.handle('history:list', (_e, filter) => {
+  const all = store.getConversations();
+  if (!filter) return all.slice(0, 200);
+  let result = all;
+  if (filter.aiType) result = result.filter(c => c.aiType === filter.aiType);
+  if (filter.favorite) result = result.filter(c => c.favorite);
+  if (filter.tag) result = result.filter(c => c.tags && c.tags.includes(filter.tag));
+  return result.slice(0, 200);
+});
+
+ipcMain.handle('history:save', (_e, conv) => {
+  store.saveConversation(conv);
+  return { success: true };
+});
+
+ipcMain.handle('history:delete', (_e, id) => {
+  store.deleteConversation(id);
+  return { success: true };
+});
+
+ipcMain.handle('history:search', (_e, query) => {
+  return store.searchConversations(query).slice(0, 200);
+});
+
+ipcMain.handle('history:get', (_e, id) => {
+  const all = store.getConversations();
+  return all.find(c => c.id === id) || null;
+});
+
+// ─── TEMPLATES IPC ───
+ipcMain.handle('templates:list', () => store.getTemplates());
+ipcMain.handle('templates:save', (_e, tpl) => { store.saveTemplate(tpl); return { success: true }; });
+ipcMain.handle('templates:delete', (_e, id) => { store.deleteTemplate(id); return { success: true }; });
+
+// ─── COMPARISONS IPC ───
+ipcMain.handle('compare:list', () => store.getComparisons());
+ipcMain.handle('compare:save', (_e, cmp) => { store.saveComparison(cmp); return { success: true }; });
+
+// ─── SETTINGS IPC ───
+ipcMain.handle('settings:get', () => store.getSettings());
+ipcMain.handle('settings:set', (_e, partial) => { store.saveSettings(partial); return { success: true }; });
+
+// ─── BACKUP IPC ───
+ipcMain.handle('backup:create', () => store.createBackup());
+ipcMain.handle('backup:list', () => store.listBackups());
+ipcMain.handle('backup:restore', (_e, id) => store.restoreBackup(id));
+
+// ─── EXPORT IPC ───
+ipcMain.handle('export:md', async (_e, data) => {
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: `ai-browser-export-${Date.now()}.md`,
+    filters: [{ name: 'Markdown', extensions: ['md'] }],
+  });
+  if (!filePath) return { success: false, cancelled: true };
+  try {
+    fs.writeFileSync(filePath, data.content, 'utf8');
+    return { success: true, filePath };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('export:json', async (_e, data) => {
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: `ai-browser-data-${Date.now()}.json`,
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  if (!filePath) return { success: false, cancelled: true };
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    return { success: true, filePath };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('import:json', async () => {
+  const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile'],
+  });
+  if (!filePaths || filePaths.length === 0) return { success: false, cancelled: true };
+  try {
+    const raw = fs.readFileSync(filePaths[0], 'utf8');
+    const data = JSON.parse(raw);
+    return { success: true, data };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// ─── METRICS IPC (FR-E03) ───
+let metricsInterval = null;
+
+function startMetrics() {
+  if (metricsInterval) return;
+  metricsInterval = setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const mem = process.memoryUsage();
+    const cpu = process.cpuUsage();
+    mainWindow.webContents.send('metrics:update', {
+      mainRSS: Math.round(mem.rss / 1048576),
+      mainHeap: Math.round(mem.heapUsed / 1048576),
+      cpuUser: cpu.user,
+      cpuSystem: cpu.system,
+      ts: Date.now(),
+    });
+  }, 5000);
+}
+
+function stopMetrics() {
+  if (metricsInterval) { clearInterval(metricsInterval); metricsInterval = null; }
+}
+
+ipcMain.handle('metrics:start', () => { startMetrics(); return { success: true }; });
+ipcMain.handle('metrics:stop', () => { stopMetrics(); return { success: true }; });
+
+// ─── CRASH RECOVERY (FR-E04) ───
+ipcMain.handle('cache-last-query', (_e, query) => {
+  lastQuery = query;
+  lastQueryTime = Date.now();
+  return { success: true };
+});
+
+ipcMain.handle('get-last-query', () => {
+  // Valid for 10 minutes
+  if (lastQuery && (Date.now() - lastQueryTime) < 600000) {
+    return { success: true, query: lastQuery };
+  }
+  return { success: false };
+});
+
+// ─── PRIVACY CLEANUP IPC (FR-D07) ───
+ipcMain.handle('cleanup:clear', async (_e, panelId) => {
+  return await store.clearPrivacy(panelId);
+});
+
+// ─── DIAGNOSTICS IPC (FR-E08) ───
+ipcMain.handle('diagnostics:export', async () => {
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: `ai-browser-diagnostics-${Date.now()}.zip`,
+    filters: [{ name: 'ZIP', extensions: ['zip'] }],
+  });
+  if (!filePath) return { success: false, cancelled: true };
+  try {
+    // Collect diagnostics
+    const diag = {
+      timestamp: new Date().toISOString(),
+      platform: process.platform,
+      arch: process.arch,
+      electronVersion: process.versions.electron,
+      nodeVersion: process.versions.node,
+      chromeVersion: process.versions.chrome,
+      memoryUsage: process.memoryUsage(),
+      settings: store.getSettings(),
+      conversationCount: store.getConversations().length,
+    };
+    // Write as JSON (simple approach, no zip dependency)
+    fs.writeFileSync(filePath.replace('.zip', '.json'), JSON.stringify(diag, null, 2), 'utf8');
+    return { success: true, filePath: filePath.replace('.zip', '.json') };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// ─── CRASH NOTIFICATION FROM RENDERER ───
+ipcMain.on('pane-crashed', (_e, info) => {
+  console.log('[Crash] Renderer reported pane crash:', info);
+});
+
+// ─── UPDATE INSTALL ───
+ipcMain.on('update-install', () => {
+  // Trigger quit and install (if using electron-updater)
+  if (typeof autoUpdater !== 'undefined') {
+    autoUpdater.quitAndInstall();
+  }
+});
+
+// ─── AUTO BACKUP ───
+function scheduleAutoBackup() {
+  // Backup once on startup and every 24 hours
+  store.createBackup();
+  setInterval(() => {
+    store.createBackup();
+  }, 86400000);
+}
+
+// ─── SYSTEM TRAY + MINI MODE (GLM E3) ───
+function createTray() {
+  try {
+    // Create a simple 16x16 tray icon
+    const icon = nativeImage.createEmpty();
+    tray = new Tray(icon);
+    const contextMenu = Menu.buildFromTemplate([
+      { label: '显示/隐藏窗口', click: () => {
+        if (mainWindow.isVisible()) {
+          mainWindow.hide();
+        } else {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      }},
+      { label: '迷你模式', type: 'checkbox', checked: false, click: (item) => {
+        toggleMiniMode(item.checked);
+      }},
+      { type: 'separator' },
+      { label: '退出', click: () => { app.quit(); } },
+    ]);
+    tray.setToolTip('AI Browser');
+    tray.setContextMenu(contextMenu);
+    tray.on('double-click', () => {
+      if (mainWindow.isVisible()) {
+        mainWindow.focus();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (e) {
+    console.log('[Tray] Failed to create tray:', e.message);
+  }
+}
+
+function toggleMiniMode(enable) {
+  isMiniMode = enable;
+  if (enable) {
+    mainWindow.setSize(400, 300);
+    mainWindow.setAlwaysOnTop(true);
+  } else {
+    mainWindow.setSize(1600, 1000);
+    mainWindow.setAlwaysOnTop(false);
+  }
+  mainWindow.webContents.send('mini-mode-changed', enable);
+}
+
+// Global shortcut: Ctrl+Shift+Space to toggle window visibility
+function registerGlobalShortcuts() {
+  try {
+    globalShortcut.register('CommandOrControl+Shift+Space', () => {
+      if (mainWindow.isVisible()) {
+        mainWindow.hide();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (e) {
+    console.log('[Shortcut] Failed to register global shortcut:', e.message);
+  }
+}
+
 app.whenReady().then(() => {
   // Set a realistic user agent
   const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -126,11 +383,24 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  // Start services
+  startMetrics();
+  scheduleAutoBackup();
+  createTray();
+  registerGlobalShortcuts();
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on('window-all-closed', () => {
+  stopMetrics();
+  globalShortcut.unregisterAll();
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+  stopMetrics();
+  globalShortcut.unregisterAll();
 });
