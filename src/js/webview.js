@@ -113,9 +113,17 @@ function bindWebviewEvents(panelId) {
 
   wv.addEventListener('did-start-loading', () => {
     panel.classList.add('loading');
+    // Show skeleton screen
+    const skel = panel.querySelector('.panel-skeleton');
+    if (skel) skel.classList.remove('hidden');
+    const overlay = panel.querySelector('.panel-overlay');
+    if (overlay) overlay.classList.remove('hidden');
   });
   wv.addEventListener('did-stop-loading', () => {
     panel.classList.remove('loading');
+    // Hide skeleton screen and overlay
+    const skel = panel.querySelector('.panel-skeleton');
+    if (skel) skel.classList.add('hidden');
     if (overlay) overlay.classList.add('hidden');
     // Inject responsive CSS into Zhipu webview
     if (panel.dataset.type === 'zhipu') {

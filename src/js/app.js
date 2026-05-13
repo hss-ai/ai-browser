@@ -2,6 +2,9 @@
 // 初始化主面板事件绑定
 PRIMARY_ORDER.forEach(id => bindWebviewEvents(id));
 
+// 初始化面板拖拽排序
+initPanelSorter();
+
 // 启动时加载代理
 loadProxyConfig();
 applyProxy();

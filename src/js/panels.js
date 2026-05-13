@@ -56,17 +56,24 @@ function clonePanel(type) {
       <div class="panel-url-wrap" onclick="focusPanel('${panelId}')">
         <div class="panel-url">${cfg.host}</div>
       </div>
-      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('${type}')">
+      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('${type}')" aria-label="新增${cfg.name}副本">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="panel-btn" title="刷新" onclick="reloadPanel('${panelId}')">
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('${panelId}')" aria-label="刷新${cfg.name}">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
-      <button class="panel-btn" title="关闭副本" onclick="closeClone('${panelId}')">
+      <button class="panel-btn" title="关闭副本" onclick="closeClone('${panelId}')" aria-label="关闭${cfg.name}副本">
         <svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
       </button>
     </div>
     <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-skeleton hidden">
+      <div class="skel-block w-60 h-14"></div>
+      <div class="skel-block w-full h-14"></div>
+      <div class="skel-block w-80 h-14"></div>
+      <div class="skel-block w-full h-40"></div>
+      <div class="skel-block w-40 h-14"></div>
+    </div>
     <div class="panel-overlay" id="overlay-${panelId}">
       <div class="overlay-icon">${cfg.overlayIcon}</div>
       <div class="overlay-text">${cfg.name} #${idx}<br><small>正在加载（独立账号）…</small></div>
@@ -210,3 +217,31 @@ function stopResize() {
   document.removeEventListener('mousemove', onResize);
   document.removeEventListener('mouseup', stopResize);
 }
+
+// ─── RESPONSIVE LAYOUT ───
+let responsiveLayoutActive = false;
+let preResponsiveLayout = 4;
+
+function checkResponsiveLayout() {
+  const w = window.innerWidth;
+  if (w < 640) {
+    if (!responsiveLayoutActive || currentLayout > 2) {
+      preResponsiveLayout = currentLayout;
+      responsiveLayoutActive = true;
+      // Let CSS handle single column via scroll
+    }
+  } else if (w < 960) {
+    if (currentLayout > 2) {
+      if (!responsiveLayoutActive) preResponsiveLayout = currentLayout;
+      responsiveLayoutActive = true;
+      setLayout(2);
+    }
+  } else {
+    if (responsiveLayoutActive) {
+      responsiveLayoutActive = false;
+      setLayout(preResponsiveLayout);
+    }
+  }
+}
+
+window.addEventListener('resize', checkResponsiveLayout);

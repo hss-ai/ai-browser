@@ -73,13 +73,3 @@ function sendQuery() {
     }
   });
 }
-
-function handleKey(e) {
-  // Ctrl/Cmd + Enter always sends
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { sendQuery(); return; }
-  // Plain Enter sends if there is input text
-  if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
-    const q = document.getElementById('query-input').value.trim();
-    if (q) sendQuery();
-  }
-}

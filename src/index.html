@@ -4,7 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Browser — 多模型对比</title>
+  <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/main.css">
+  <!-- Anti-FOUC: apply saved theme before first paint -->
+  <script>
+    (function() {
+      var t = localStorage.getItem('ai-browser-theme') || 'dark';
+      document.documentElement.dataset.theme = t;
+      if (t === 'system') {
+        var m = window.matchMedia('(prefers-color-scheme: dark)');
+        document.documentElement.dataset.theme = m.matches ? 'dark' : 'light';
+      }
+    })();
+  </script>
 </head>
 <body>
 
@@ -15,24 +27,32 @@
 
   <div class="layout-btns">
     <!-- 2 panels -->
-    <button class="layout-btn" title="2栏" onclick="setLayout(2)">
+    <button class="layout-btn" title="2栏" onclick="setLayout(2)" aria-label="2栏布局">
       <svg viewBox="0 0 16 16"><rect x="1" y="2" width="6" height="12" rx="1"/><rect x="9" y="2" width="6" height="12" rx="1"/></svg>
     </button>
     <!-- 3 panels -->
-    <button class="layout-btn" title="3栏" onclick="setLayout(3)">
+    <button class="layout-btn" title="3栏" onclick="setLayout(3)" aria-label="3栏布局">
       <svg viewBox="0 0 16 16"><rect x="1" y="2" width="3.5" height="12" rx="1"/><rect x="6.25" y="2" width="3.5" height="12" rx="1"/><rect x="11.5" y="2" width="3.5" height="12" rx="1"/></svg>
     </button>
     <!-- 4 panels -->
-    <button class="layout-btn active" title="4栏" onclick="setLayout(4)">
+    <button class="layout-btn active" title="4栏" onclick="setLayout(4)" aria-label="4栏布局">
       <svg viewBox="0 0 16 16"><rect x="1" y="2" width="2.5" height="12" rx="1"/><rect x="4.8" y="2" width="2.5" height="12" rx="1"/><rect x="8.7" y="2" width="2.5" height="12" rx="1"/><rect x="12.5" y="2" width="2.5" height="12" rx="1"/></svg>
     </button>
     <!-- 5 panels -->
-    <button class="layout-btn" title="5栏" onclick="setLayout(5)">
+    <button class="layout-btn" title="5栏" onclick="setLayout(5)" aria-label="5栏布局">
       <svg viewBox="0 0 16 16"><rect x="1" y="2" width="2" height="12" rx="1"/><rect x="3.8" y="2" width="2" height="12" rx="1"/><rect x="6.6" y="2" width="2" height="12" rx="1"/><rect x="9.4" y="2" width="2" height="12" rx="1"/><rect x="12.2" y="2" width="2" height="12" rx="1"/></svg>
     </button>
   </div>
 
   <div class="spacer"></div>
+
+  <button id="theme-btn" class="titlebar-icon-btn" onclick="cycleTheme()" title="切换主题" aria-label="切换主题" style="-webkit-app-region:no-drag">
+    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  </button>
+
+  <button id="settings-btn" class="titlebar-icon-btn" onclick="toggleSettingsModal()" title="设置" aria-label="设置" style="-webkit-app-region:no-drag">
+    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
 
   <div class="status-area" id="status-pills">
     <div class="status-pill active" data-ai="chatgpt" onclick="togglePanel('chatgpt')">
@@ -51,7 +71,7 @@
       <div class="dot"></div> 智谱
     </div>
     <div class="divider-v"></div>
-    <button class="layout-btn" id="add-btn" title="新增副本（多账号）" onclick="toggleAddMenu(event)" style="-webkit-app-region: no-drag; width: 32px;">
+    <button class="layout-btn" id="add-btn" title="新增副本（多账号）" onclick="toggleAddMenu(event)" aria-label="新增副本" style="-webkit-app-region: no-drag; width: 32px;">
       <svg viewBox="0 0 16 16"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
     </button>
   </div>
@@ -80,7 +100,6 @@
       type="text"
       id="query-input"
       placeholder="输入问题，广播到所有 AI…"
-      onkeydown="handleKey(event)"
     />
     <button id="send-btn" onclick="sendQuery()">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -100,14 +119,21 @@
       <div class="panel-url-wrap" onclick="focusPanel('chatgpt')">
         <div class="panel-url">chatgpt.com</div>
       </div>
-      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('chatgpt')">
+      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('chatgpt')" aria-label="新增ChatGPT副本">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="panel-btn" title="刷新" onclick="reloadPanel('chatgpt')">
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('chatgpt')" aria-label="刷新ChatGPT">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     </div>
     <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-skeleton hidden">
+      <div class="skel-block w-60 h-14"></div>
+      <div class="skel-block w-full h-14"></div>
+      <div class="skel-block w-80 h-14"></div>
+      <div class="skel-block w-full h-40"></div>
+      <div class="skel-block w-40 h-14"></div>
+    </div>
     <div class="panel-overlay" id="overlay-chatgpt">
       <div class="overlay-icon">🤖</div>
       <div class="overlay-text">ChatGPT<br><small>正在加载…</small></div>
@@ -131,14 +157,21 @@
       <div class="panel-url-wrap" onclick="focusPanel('claude')">
         <div class="panel-url">claude.ai</div>
       </div>
-      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('claude')">
+      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('claude')" aria-label="新增Claude副本">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="panel-btn" title="刷新" onclick="reloadPanel('claude')">
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('claude')" aria-label="刷新Claude">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     </div>
     <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-skeleton hidden">
+      <div class="skel-block w-60 h-14"></div>
+      <div class="skel-block w-full h-14"></div>
+      <div class="skel-block w-80 h-14"></div>
+      <div class="skel-block w-full h-40"></div>
+      <div class="skel-block w-40 h-14"></div>
+    </div>
     <div class="panel-overlay" id="overlay-claude">
       <div class="overlay-icon">✦</div>
       <div class="overlay-text">Claude<br><small>正在加载…</small></div>
@@ -162,14 +195,21 @@
       <div class="panel-url-wrap" onclick="focusPanel('gemini')">
         <div class="panel-url">gemini.google.com</div>
       </div>
-      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('gemini')">
+      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('gemini')" aria-label="新增Gemini副本">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="panel-btn" title="刷新" onclick="reloadPanel('gemini')">
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('gemini')" aria-label="刷新Gemini">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     </div>
     <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-skeleton hidden">
+      <div class="skel-block w-60 h-14"></div>
+      <div class="skel-block w-full h-14"></div>
+      <div class="skel-block w-80 h-14"></div>
+      <div class="skel-block w-full h-40"></div>
+      <div class="skel-block w-40 h-14"></div>
+    </div>
     <div class="panel-overlay" id="overlay-gemini">
       <div class="overlay-icon">💫</div>
       <div class="overlay-text">Gemini<br><small>正在加载…</small></div>
@@ -193,14 +233,21 @@
       <div class="panel-url-wrap" onclick="focusPanel('deepseek')">
         <div class="panel-url">chat.deepseek.com</div>
       </div>
-      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('deepseek')">
+      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('deepseek')" aria-label="新增DeepSeek副本">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="panel-btn" title="刷新" onclick="reloadPanel('deepseek')">
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('deepseek')" aria-label="刷新DeepSeek">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     </div>
     <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-skeleton hidden">
+      <div class="skel-block w-60 h-14"></div>
+      <div class="skel-block w-full h-14"></div>
+      <div class="skel-block w-80 h-14"></div>
+      <div class="skel-block w-full h-40"></div>
+      <div class="skel-block w-40 h-14"></div>
+    </div>
     <div class="panel-overlay" id="overlay-deepseek">
       <div class="overlay-icon">🔍</div>
       <div class="overlay-text">DeepSeek<br><small>正在加载…</small></div>
@@ -224,14 +271,21 @@
       <div class="panel-url-wrap" onclick="focusPanel('zhipu')">
         <div class="panel-url">chatglm.cn</div>
       </div>
-      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('zhipu')">
+      <button class="panel-btn" title="新增副本（独立账号）" onclick="clonePanel('zhipu')" aria-label="新增智谱清言副本">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="panel-btn" title="刷新" onclick="reloadPanel('zhipu')">
+      <button class="panel-btn" title="刷新" onclick="reloadPanel('zhipu')" aria-label="刷新智谱清言">
         <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     </div>
     <div class="panel-loading"><div class="panel-loading-bar"></div></div>
+    <div class="panel-skeleton hidden">
+      <div class="skel-block w-60 h-14"></div>
+      <div class="skel-block w-full h-14"></div>
+      <div class="skel-block w-80 h-14"></div>
+      <div class="skel-block w-full h-40"></div>
+      <div class="skel-block w-40 h-14"></div>
+    </div>
     <div class="panel-overlay" id="overlay-zhipu">
       <div class="overlay-icon">🧠</div>
       <div class="overlay-text">智谱清言<br><small>正在加载…</small></div>
@@ -253,7 +307,7 @@
   <div class="status-text" id="status-msg">就绪 — 开启广播模式，一次提问同步到所有 AI</div>
   <div style="flex:1"></div>
   <div class="status-text" id="status-clock"></div>
-  <div class="status-text">AI Browser v1.4.1</div>
+  <div class="status-text">AI Browser v2.0.0-dev</div>
 </div>
 
 <!-- FINGERPRINT MODAL -->
@@ -332,13 +386,60 @@
   </div>
 </div>
 
+<!-- SETTINGS MODAL -->
+<div id="settings-modal-overlay" onclick="if(event.target===this)closeSettingsModal()">
+  <div id="settings-modal">
+    <div id="settings-modal-header">
+      <span>⚙ 设置</span>
+      <button id="settings-modal-close" onclick="closeSettingsModal()" aria-label="关闭设置">✕</button>
+    </div>
+    <div id="settings-modal-body">
+      <div class="settings-group">
+        <div class="settings-group-title">主题</div>
+        <div class="settings-options" id="theme-options">
+          <label class="settings-radio" data-value="dark">
+            <input type="radio" name="settings-theme" value="dark" onchange="setTheme('dark')"> 暗色主题
+          </label>
+          <label class="settings-radio" data-value="light">
+            <input type="radio" name="settings-theme" value="light" onchange="setTheme('light')"> 亮色主题
+          </label>
+          <label class="settings-radio" data-value="system">
+            <input type="radio" name="settings-theme" value="system" onchange="setTheme('system')"> 跟随系统
+          </label>
+          <label class="settings-radio" data-value="hc">
+            <input type="radio" name="settings-theme" value="hc" onchange="setTheme('hc')"> 高对比度
+          </label>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">动效</div>
+        <label class="settings-check">
+          <input type="checkbox" id="settings-reduced-motion" onchange="toggleReducedMotion()"> 减少动效 (prefers-reduced-motion)
+        </label>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">关于</div>
+        <div class="settings-about">AI Browser v2.0-dev</div>
+        <div class="settings-about-sub">多模型对比工作台</div>
+      </div>
+    </div>
+    <div id="settings-modal-footer">
+      <button id="settings-close-btn" onclick="closeSettingsModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
 <script src="js/ai-types.js"></script>
 <script src="js/state.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
 <script src="js/webview.js"></script>
+<script src="js/command-palette.js"></script>
+<script src="js/shortcuts.js"></script>
+<script src="js/panel-sorter.js"></script>
 <script src="js/broadcast.js"></script>
 <script src="js/panels.js"></script>
 <script src="js/proxy.js"></script>

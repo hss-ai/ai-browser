@@ -1,6 +1,6 @@
 {
   "name": "ai-browser",
-  "version": "1.4.1",
+  "version": "2.0.0-dev",
   "description": "Multi-AI Split Screen Browser",
   "main": "src/main.js",
   "scripts": {
@@ -13,8 +13,8 @@
     "dist:all": "npx electron-builder --win --mac --linux --x64 --arm64"
   },
   "devDependencies": {
-    "electron": "^28.3.3",
     "@electron/packager": "^20.0.0",
+    "electron": "^28.3.3",
     "electron-builder": "^25.1.8"
   },
   "build": {
@@ -32,7 +32,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": null
@@ -41,7 +43,9 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "category": "public.app-category.utilities",
@@ -51,7 +55,9 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "category": "Utility",
@@ -64,6 +70,9 @@
     }
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "fuse.js": "^7.3.0",
     "openspec": "^0.0.0"
   }
 }
