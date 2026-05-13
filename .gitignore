@@ -26,6 +26,12 @@ Thumbs.db
 # Trellis 插件（自动管理，与 .claude/.opencode 重复）
 plugins/
 
+# JetBrains IDE 本地配置
+.idea/
+
+# OpenCode/OMC 本地配置
+.omc/
+
 # 本地工具配置
 .mcp.json
 opencode.json
